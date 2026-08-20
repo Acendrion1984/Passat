@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <title>EV Ladehistorie</title>
+    <!-- SheetJS for .xlsx parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            padding: 0 0 80px 0;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background: linear-gradient(145deg, #0b2b3d 0%, #1a4a5f 100%);
+            padding: 20px 18px 18px 18px;
+            border-radius: 0 0 28px 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-top h1 {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .header-top .sub {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 400;
+        }
+        .import-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            backdrop-filter: blur(2px);
+        }
+        .import-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        .import-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+        #fileInput {
+            display: none;
+        }
+
+        .summary-card {
+            background: #fff;
+            margin: 18px 16px 12px 16px;
+            padding: 18px 20px 16px 20px;
+            border-radius: 18px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+        .summary-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7a8a;
+            letter-spacing: 0.2px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 4px;
+        }
+        .summary-total-kwh {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0a2a3a;
+        }
+        .summary-total-kwh small {
+            font-size: 18px;
+            font-weight: 500;
+            color: #6b7a8a;
+            margin-left: 4px;
+        }
+        .summary-cost {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0a2a3a;
+        }
+        .summary-cost small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6b7a8a;
+            margin-left: 2px;
+        }
+        .summary-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #4a5a6a;
+            border-top: 1px solid #ecf0f3;
+            padding-top: 8px;
+        }
+        .summary-detail .free {
+            color: #34a853;
+        }
+        .summary-detail .paid {
+            color: #1a73e8;
+        }
+
+        .month-nav-card {
+            background: #fff;
+            margin: 0 16px 12px 16px;
+            padding: 16px 20px 14px 20px;
+            border-radius: 18px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .month-nav .nav-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #1a4a5f;
+            cursor: pointer;
+            padding: 0 12px;
+            line-height: 1;
+            touch-action: manipulation;
+            transition: opacity 0.2s;
+        }
+        .month-nav .nav-btn:active {
+            opacity: 0.5;
+        }
+        .month-nav .month-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0a2a3a;
+        }
+        .month-nav .month-title .year {
+            font-weight: 400;
+            font-size: 16px;
+            color: #6b7a8a;
+        }
+
+        .month-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            flex-wrap: wrap;
+            gap: 4px 0;
+        }
+        .month-stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        .month-stat-item .stat-value {
+            font-weight: 700;
+            font-size: 17px;
+            color: #0a2a3a;
+        }
+        .month-stat-item .stat-label {
+            color: #8a9aa8;
+            font-size: 13px;
+        }
+        .month-session-count {
+            font-size: 13px;
+            color: #6b7a8a;
+            margin-top: 6px;
+            border-top: 1px solid #ecf0f3;
+            padding-top: 8px;
+        }
+
+        .chart-container {
+            margin-top: 12px;
+            border-top: 1px solid #ecf0f3;
+            padding-top: 12px;
+        }
+        .chart-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7a8a;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+        .chart-bars-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 6px;
+        }
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 100px;
+            min-width: 100%;
+            gap: 2px;
+        }
+        .chart-bar {
+            flex: 1 0 0;
+            min-width: 6px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.2s;
+            min-height: 2px;
+            position: relative;
+        }
+        .chart-bar.free {
+            background: #34a853;
+        }
+        .chart-bar.paid {
+            background: #1a73e8;
+        }
+        .chart-bar.zero {
+            background: #e9ecef;
+        }
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+        .chart-labels {
+            display: flex;
+            margin-top: 4px;
+            font-size: 8px;
+            color: #8a9aa8;
+            justify-content: space-between;
+            padding: 0 2px;
+        }
+        .chart-labels span {
+            flex: 1;
+            text-align: center;
+            transform: rotate(-45deg);
+            white-space: nowrap;
+            font-size: 7px;
+        }
+
+        .session-list {
+            margin: 0 16px 12px 16px;
+        }
+        .session-item {
+            background: #fff;
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-left: 4px solid #1a73e8;
+        }
+        .session-item.free {
+            border-left-color: #34a853;
+        }
+        .session-row1 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .session-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0a2a3a;
+        }
+        .session-location {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a4a5f;
+            background: #eef4f8;
+            padding: 0 12px;
+            border-radius: 20px;
+            line-height: 26px;
+        }
+        .session-row2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2px;
+        }
+        .session-cost {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0a2a3a;
+        }
+        .session-duration {
+            font-size: 14px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .session-energy {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0a2a3a;
+        }
+        .session-energy small {
+            font-weight: 400;
+            color: #8a9aa8;
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8a9aa8;
+        }
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        .empty-state p {
+            font-size: 14px;
+        }
+        .empty-state .hint-btn {
+            margin-top: 16px;
+            background: #1a4a5f;
+            color: #fff;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 40px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .fab-import {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a4a5f;
+            color: #fff;
+            border: none;
+            border-radius: 60px;
+            padding: 14px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 6px 24px rgba(26, 74, 95, 0.45);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            z-index: 20;
+            letter-spacing: 0.3px;
+        }
+        .fab-import:active {
+            transform: translateX(-50%) scale(0.96);
+            box-shadow: 0 3px 12px rgba(26, 74, 95, 0.35);
+        }
+        .fab-import svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e2e3a;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            z-index: 30;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 420px) {
+            .header-top h1 { font-size: 18px; }
+            .summary-total-kwh { font-size: 26px; }
+            .summary-cost { font-size: 17px; }
+            .month-nav .month-title { font-size: 17px; }
+            .session-location { font-size: 12px; padding: 0 10px; line-height: 22px; }
+            .fab-import { padding: 12px 22px; font-size: 14px; bottom: 18px; }
+            .chart-bar { min-width: 4px; }
+            .chart-labels span { font-size: 6px; }
+        }
+        @media (min-width: 600px) {
+            body { max-width: 480px; margin: 0 auto; background: #e8ecf0; }
+            .app-header { border-radius: 0 0 28px 28px; }
+        }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+        .hidden { display: none !important; }
+        .badge-free {
+            background: #34a85320;
+            color: #34a853;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 30px;
+            margin-left: 6px;
+        }
+        .badge-paid {
+            background: #1a73e820;
+            color: #1a73e8;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 30px;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="header-top">
+            <div>
+                <h1>⚡ Ladehistorie</h1>
+                <div class="sub">Deine Ladevorgänge im Überblick</div>
+            </div>
+            <button class="import-btn" id="headerImportBtn">
+                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                Import
+            </button>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" multiple />
+        </div>
+    </header>
+
+    <div id="toast" class="toast"></div>
+
+    <main id="appContent">
+        <div id="emptyState" class="empty-state">
+            <div class="empty-icon">📊</div>
+            <h3>Keine Ladedaten</h3>
+            <p>Importiere eine oder mehrere <br /><strong>.xlsx</strong>-Dateien im GTE-Format.</p>
+            <button class="hint-btn" id="emptyImportBtn">Datei importieren</button>
+        </div>
+        <div id="dataContainer"></div>
+    </main>
+
+    <button class="fab-import" id="fabImportBtn">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+        Datei importieren
+    </button>
+
+    <script>
+        // ============================================================
+        // KONSTANTEN & ZUSTAND
+        // ============================================================
+        const COST_PER_KWH = 0.267;
+        let allSessions = [];
+        let monthKeys = [];
+        let currentMonthIndex = 0;
+
+        // ============================================================
+        // HELFER
+        // ============================================================
+        function parseDuration(str) {
+            if (!str) return 0;
+            const s = str.toLowerCase().trim();
+            let hours = 0, minutes = 0;
+            const hMatch = s.match(/(\d+)hour/);
+            const mMatch = s.match(/(\d+)minute/);
+            if (hMatch) hours = parseInt(hMatch[1], 10);
+            if (mMatch) minutes = parseInt(mMatch[1], 10);
+            return hours + minutes / 60;
+        }
+
+        function parseDateTime(str) {
+            if (!str) return null;
+            const parts = str.trim().split(' ');
+            if (parts.length < 2) return null;
+            const dateParts = parts[0].split('/');
+            const timeParts = parts[1].split(':');
+            if (dateParts.length < 3 || timeParts.length < 2) return null;
+            const year = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1;
+            const day = parseInt(dateParts[2], 10);
+            const hour = parseInt(timeParts[0], 10);
+            const minute = parseInt(timeParts[1], 10);
+            return new Date(year, month, day, hour, minute);
+        }
+
+        function formatSessionDate(date) {
+            if (!date) return '';
+            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            const dayName = days[date.getDay()];
+            const dayNum = date.getDate();
+            const monthName = months[date.getMonth()];
+            let hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            if (hours > 12) hours -= 12;
+            if (hours === 0) hours = 12;
+            return `${dayName} ${dayNum} ${monthName}, ${hours}:${minutes} ${ampm}`;
+        }
+
+        function formatDurationHours(hours) {
+            if (!hours || hours < 0) return '0 Std. 0 Min.';
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            if (h === 0) return `${m} Min.`;
+            return `${h} Std. ${m} Min.`;
+        }
+
+        function fixEnergy(val) {
+            if (typeof val === 'string') val = parseFloat(val.replace(',', '.'));
+            if (isNaN(val)) return 0;
+            if (val > 11.2) return Math.round((val / 10) * 1000) / 1000;
+            return Math.round(val * 1000) / 1000;
+        }
+
+        function fmt(v) { return Number(v).toFixed(2); }
+
+        function showToast(msg, duration = 2800) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._hide);
+            el._hide = setTimeout(() => el.classList.remove('show'), duration);
+        }
+
+        // ============================================================
+        // PARSER (Import)
+        // ============================================================
+        function parseExcelFile(arrayBuffer) {
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            let headerIdx = -1;
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 3) continue;
+                for (let j = 0; j < row.length; j++) {
+                    if (String(row[j] || '').includes('Start time')) { headerIdx = i; break; }
+                }
+                if (headerIdx >= 0) break;
+            }
+            if (headerIdx < 0) { showToast('⚠️ Keine Kopfzeile gefunden.'); return []; }
+
+            const sessions = [];
+            const headerRow = data[headerIdx];
+            let idxStart = -1, idxEnd = -1, idxDuration = -1, idxEnergy = -1, idxName = -1, idxCard = -1;
+            for (let j = 0; j < headerRow.length; j++) {
+                const cell = String(headerRow[j] || '').trim();
+                if (cell.includes('Start time')) idxStart = j;
+                else if (cell.includes('End time')) idxEnd = j;
+                else if (cell.includes('Charging time')) idxDuration = j;
+                else if (cell.includes('Charge energy')) idxEnergy = j;
+                else if (cell === 'Name') idxName = j;
+                else if (cell === 'Card No') idxCard = j;
+            }
+            if (idxStart < 0 || idxEnergy < 0) { showToast('⚠️ Spalten nicht gefunden.'); return []; }
+
+            for (let i = headerIdx + 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+                const startVal = row[idxStart] ? String(row[idxStart]).trim() : '';
+                if (!startVal) continue;
+
+                const endVal = idxEnd >= 0 && row[idxEnd] ? String(row[idxEnd]).trim() : '';
+                const durVal = idxDuration >= 0 && row[idxDuration] ? String(row[idxDuration]).trim() : '';
+                const energyRaw = idxEnergy >= 0 && row[idxEnergy] !== undefined && row[idxEnergy] !== '' ? parseFloat(String(row[idxEnergy]).replace(',', '.')) : 0;
+                const nameVal = idxName >= 0 && row[idxName] ? String(row[idxName]).trim() : 'Ace';
+                const cardVal = idxCard >= 0 && row[idxCard] ? String(row[idxCard]).trim() : '';
+
+                const energy = fixEnergy(energyRaw);
+                const startDate = parseDateTime(startVal);
+                const endDate = endVal ? parseDateTime(endVal) : null;
+                const durationHours = durVal ? parseDuration(durVal) : (endDate && startDate ? (endDate - startDate) / 3600000 : 0);
+
+                sessions.push({
+                    start: startDate,
+                    startRaw: startVal,
+                    end: endDate,
+                    endRaw: endVal,
+                    duration: durationHours,
+                    durationRaw: durVal,
+                    energy: energy,
+                    name: nameVal,
+                    cardNo: cardVal,
+                    isFree: false,
+                });
+            }
+            return sessions;
+        }
+
+        function mergeSessions(newSessions) {
+            const existing = [...allSessions];
+            const toAdd = [];
+            for (const s of newSessions) {
+                if (!s.start) continue;
+                let dup = false;
+                for (const e of existing) {
+                    if (!e.start) continue;
+                    if (Math.abs(e.start.getTime() - s.start.getTime()) < 120000) { dup = true; break; }
+                }
+                if (!dup) {
+                    for (const a of toAdd) {
+                        if (!a.start) continue;
+                        if (Math.abs(a.start.getTime() - s.start.getTime()) < 120000) { dup = true; break; }
+                    }
+                }
+                if (!dup) toAdd.push(s);
+            }
+            allSessions = [...existing, ...toAdd];
+            allSessions.sort((a, b) => {
+                if (!a.start) return 1;
+                if (!b.start) return -1;
+                return b.start.getTime() - a.start.getTime();
+            });
+            return toAdd.length;
+        }
+
+        // ============================================================
+        // SIMULATION KOSTENLOSE ARBEITSLADUNGEN (realistisch 6-10 kWh pro Tag)
+        // ============================================================
+        function generateWorkSessions(year, month, totalEnergy) {
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const weekdays = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month-1, d);
+                const day = date.getDay();
+                if (day >= 1 && day <= 5) weekdays.push(d);
+            }
+            if (weekdays.length === 0) return [];
+
+            // Jeder Werktag bekommt einen Wert zwischen 6 und 10 kWh
+            let energies = weekdays.map(() => 6 + Math.random() * 4);
+            const sum = energies.reduce((a,b) => a+b, 0);
+            const scale = totalEnergy / sum;
+            energies = energies.map(e => Math.round(e * scale * 100) / 100);
+
+            // Rundungsfehler korrigieren
+            let diff = totalEnergy - energies.reduce((a,b) => a+b, 0);
+            if (Math.abs(diff) > 0.01) {
+                energies[0] = Math.round((energies[0] + diff) * 100) / 100;
+            }
+
+            const sessions = [];
+            for (let i = 0; i < weekdays.length; i++) {
+                const day = weekdays[i];
+                const energy = energies[i];
+                if (energy <= 0) continue;
+                const start = new Date(year, month-1, day, 8 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60));
+                const durHours = 1 + Math.random() * 2;
+                const end = new Date(start);
+                end.setHours(end.getHours() + Math.floor(durHours), end.getMinutes() + Math.round((durHours % 1) * 60));
+                sessions.push({
+                    start: start,
+                    startRaw: start.toISOString().replace('T', ' ').slice(0,16),
+                    end: end,
+                    endRaw: end.toISOString().replace('T', ' ').slice(0,16),
+                    duration: durHours,
+                    durationRaw: `${Math.floor(durHours)}hour${Math.round((durHours%1)*60)}minute`,
+                    energy: energy,
+                    name: 'Arbeit',
+                    cardNo: 'Arbeit',
+                    isFree: true,
+                });
+            }
+            return sessions;
+        }
+
+        // ============================================================
+        // MONATSSCHLÜSSEL (von April 2026 bis zum maximalen Monat, mindestens August)
+        // ============================================================
+        function updateMonthKeys() {
+            const startYear = 2026, startMonth = 4; // April
+            let endYear = 2026, endMonth = 8; // August als Fallback
+            if (allSessions.length) {
+                const dates = allSessions.map(s => s.start).filter(d => d);
+                if (dates.length) {
+                    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                    endYear = maxDate.getFullYear();
+                    endMonth = maxDate.getMonth() + 1;
+                }
+            }
+            // mindestens August 2026
+            if (endYear < 2026 || (endYear === 2026 && endMonth < 8)) {
+                endYear = 2026; endMonth = 8;
+            }
+            const keys = [];
+            let current = new Date(startYear, startMonth-1, 1);
+            const end = new Date(endYear, endMonth-1, 1);
+            while (current <= end) {
+                const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
+                keys.push(key);
+                current.setMonth(current.getMonth() + 1);
+            }
+            // absteigend sortieren (neuester zuerst)
+            keys.sort((a, b) => b.localeCompare(a));
+            monthKeys = keys;
+        }
+
+        // ============================================================
+        // DEMO-DATEN LADEN
+        // ============================================================
+        function loadDemoData() {
+            // 1. Bezahlte Sitzungen aus den Excel-Daten (Juli/August)
+            const rawData = [
+                { start: '2026/08/13 21:06', end: '2026/08/13 23:13', dur: '2hour7minute', energy: 4.81 },
+                { start: '2026/08/13 07:39', end: '2026/08/13 11:34', dur: '3hour55minute', energy: 10.67 },
+                { start: '2026/08/12 00:10', end: '2026/08/12 04:54', dur: '4hour44minute', energy: 10.36 },
+                { start: '2026/08/12 00:09', end: '2026/08/12 00:10', dur: '0hour1minute', energy: 0.02 },
+                { start: '2026/08/09 20:14', end: '2026/08/10 00:08', dur: '3hour54minute', energy: 10.63 },
+                { start: '2026/08/07 21:27', end: '2026/08/08 00:30', dur: '3hour3minute', energy: 5.032 },
+                { start: '2026/08/06 12:17', end: '2026/08/06 18:24', dur: '6hour7minute', energy: 10.475 },
+                { start: '2026/08/04 13:07', end: '2026/08/04 13:30', dur: '0hour23minute', energy: 0.32 },
+                { start: '2026/08/02 18:12', end: '2026/08/04 01:12', dur: '31hour0minute', energy: 11.10 },
+                { start: '2026/07/30 20:56', end: '2026/07/31 01:58', dur: '5hour2minute', energy: 10.87 },
+                { start: '2026/07/30 13:00', end: '2026/07/30 17:31', dur: '4hour31minute', energy: 1.87 },
+                { start: '2026/07/29 17:11', end: '2026/07/29 22:17', dur: '5hour6minute', energy: 10.869 },
+                { start: '2026/07/26 22:15', end: '2026/07/27 02:15', dur: '4hour0minute', energy: 10.14 },
+                { start: '2026/07/25 20:01', end: '2026/07/25 23:19', dur: '3hour18minute', energy: 6.03 },
+                { start: '2026/07/24 17:53', end: '2026/07/24 20:42', dur: '2hour49minute', energy: 4.80 },
+                { start: '2026/07/24 15:03', end: '2026/07/24 15:24', dur: '0hour21minute', energy: 0.94 },
+                { start: '2026/07/21 09:05', end: '2026/07/22 05:05', dur: '20hour0minute', energy: 0.00 },
+                { start: '2026/07/18 22:13', end: '2026/07/19 02:24', dur: '4hour11minute', energy: 8.23 },
+                { start: '2026/07/15 16:29', end: '2026/07/15 18:05', dur: '1hour36minute', energy: 4.35 },
+                { start: '2026/07/15 00:23', end: '2026/07/15 03:34', dur: '3hour11minute', energy: 4.94 },
+                { start: '2026/07/14 22:17', end: '2026/07/15 00:23', dur: '2hour6minute', energy: 5.62 },
+                { start: '2026/07/14 22:15', end: '2026/07/14 22:17', dur: '0hour2minute', energy: 0.04 },
+            ];
+            const sessions = rawData.map(d => {
+                const startDate = parseDateTime(d.start);
+                const endDate = d.end ? parseDateTime(d.end) : null;
+                const dur = d.dur ? parseDuration(d.dur) : (endDate && startDate ? (endDate - startDate) / 3600000 : 0);
+                return {
+                    start: startDate,
+                    startRaw: d.start,
+                    end: endDate,
+                    endRaw: d.end,
+                    duration: dur,
+                    durationRaw: d.dur,
+                    energy: fixEnergy(d.energy),
+                    name: 'Ace',
+                    cardNo: 'GTE',
+                    isFree: false,
+                };
+            });
+
+            // 2. Generierte April/Mai-Daten (bezahlt, ca. 125 kWh)
+            function generateAprilMayPaid() {
+                const start = new Date(2026, 3, 30);
+                const end = new Date(2026, 4, 30);
+                const days = [];
+                let cur = new Date(start);
+                while (cur <= end) {
+                    days.push(new Date(cur));
+                    cur.setDate(cur.getDate() + 1);
+                }
+                // Verteilung, aber mit Werten zwischen 0 und 10 kWh, Summe ca. 125
+                const raw = [
+                    2.3, 0.0, 4.1, 1.8, 5.6, 3.2, 7.0, 1.2, 0.5, 4.8,
+                    6.3, 2.7, 0.0, 5.1, 3.9, 8.2, 2.0, 4.4, 6.8, 1.5,
+                    3.0, 5.9, 2.2, 0.8, 4.7, 7.5, 1.9, 3.6, 5.3, 2.9, 4.0
+                ];
+                const sum = raw.reduce((a,b) => a+b, 0);
+                const scale = 125 / sum;
+                const scaled = raw.map(v => Math.round(v * scale * 100) / 100);
+                const sessions = [];
+                for (let i = 0; i < days.length; i++) {
+                    const d = days[i];
+                    const energy = scaled[i];
+                    if (energy === 0) continue;
+                    const startDate = new Date(d);
+                    startDate.setHours(12 + Math.floor(Math.random()*6), Math.floor(Math.random()*60), 0, 0);
+                    const durHours = 1 + Math.random() * 2;
+                    const endDate = new Date(startDate);
+                    endDate.setHours(endDate.getHours() + Math.floor(durHours), endDate.getMinutes() + Math.round((durHours%1)*60));
+                    sessions.push({
+                        start: startDate,
+                        startRaw: startDate.toISOString().replace('T',' ').slice(0,16),
+                        end: endDate,
+                        endRaw: endDate.toISOString().replace('T',' ').slice(0,16),
+                        duration: durHours,
+                        durationRaw: `${Math.floor(durHours)}hour${Math.round((durHours%1)*60)}minute`,
+                        energy: energy,
+                        name: 'Privat',
+                        cardNo: 'Home',
+                        isFree: false,
+                    });
+                }
+                return sessions;
+            }
+            const aprilMay = generateAprilMayPaid();
+
+            // 3. Kostenlose Arbeitstage (Juni 200 kWh, Juli 150 kWh)
+            const workJune = generateWorkSessions(2026, 6, 200);
+            const workJuly = generateWorkSessions(2026, 7, 150);
+
+            const all = [...sessions, ...aprilMay, ...workJune, ...workJuly];
+
+            all.sort((a, b) => {
+                if (!a.start) return 1;
+                if (!b.start) return -1;
+                return b.start.getTime() - a.start.getTime();
+            });
+
+            allSessions = all;
+            updateMonthKeys();
+            currentMonthIndex = 0;
+            render();
+            showToast(`📊 ${allSessions.length} Ladevorgänge geladen (inkl. kostenlose Arbeitstage)`);
+        }
+
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function render() {
+            const container = document.getElementById('dataContainer');
+            const empty = document.getElementById('emptyState');
+
+            if (!allSessions.length || monthKeys.length === 0) {
+                container.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            if (currentMonthIndex >= monthKeys.length) currentMonthIndex = 0;
+            if (currentMonthIndex < 0) currentMonthIndex = 0;
+
+            const currentKey = monthKeys[currentMonthIndex];
+            const [year, month] = currentKey.split('-').map(Number);
+            const monthName = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][month-1];
+
+            // Sessions des aktuellen Monats filtern
+            const monthSessions = allSessions.filter(s => {
+                if (!s.start) return false;
+                return s.start.getFullYear() === year && s.start.getMonth() === month-1;
+            });
+
+            // Tageswerte (1. bis letzter Tag)
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const dayMap = {};
+            for (let d = 1; d <= daysInMonth; d++) {
+                dayMap[d] = { total: 0, free: 0, paid: 0 };
+            }
+            for (const s of monthSessions) {
+                const d = s.start.getDate();
+                dayMap[d].total += s.energy;
+                if (s.isFree) dayMap[d].free += s.energy;
+                else dayMap[d].paid += s.energy;
+            }
+            const maxVal = Math.max(0.1, ...Object.values(dayMap).map(v => v.total));
+
+            // Monatsstatistik
+            const monthTotal = monthSessions.reduce((sum, s) => sum + s.energy, 0);
+            const monthFree = monthSessions.filter(s => s.isFree).reduce((sum, s) => sum + s.energy, 0);
+            const monthPaid = monthTotal - monthFree;
+            const monthAvg = monthSessions.length ? monthTotal / monthSessions.length : 0;
+            const monthCost = monthPaid * COST_PER_KWH;
+
+            // Balken
+            let barsHtml = '';
+            const barHeight = 100;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const val = dayMap[d].total || 0;
+                const height = Math.max(2, (val / maxVal) * barHeight);
+                let cls = 'zero';
+                if (val > 0) {
+                    if (dayMap[d].free > 0 && dayMap[d].paid === 0) cls = 'free';
+                    else if (dayMap[d].paid > 0 && dayMap[d].free === 0) cls = 'paid';
+                    else if (dayMap[d].free > 0 && dayMap[d].paid > 0) cls = 'paid'; // gemischt -> bezahlt
+                }
+                barsHtml += `<div class="chart-bar ${cls}" style="height:${height}px;" title="${d}. ${monthName} ${year}: ${fmt(val)} kWh (frei: ${fmt(dayMap[d].free)}, bezahlt: ${fmt(dayMap[d].paid)})"></div>`;
+            }
+
+            // Labels (jeden 2. Tag)
+            let labelsHtml = '';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const show = (d % 2 === 0) || d === 1 || d === daysInMonth;
+                labelsHtml += `<span style="flex:1;text-align:center;font-size:7px;color:#8a9aa8;transform:rotate(-45deg);white-space:nowrap;${!show?'visibility:hidden':''}">${d}</span>`;
+            }
+
+            // Sitzungsliste
+            let sessionsHtml = '';
+            if (monthSessions.length) {
+                for (const s of monthSessions) {
+                    const dateStr = s.start ? formatSessionDate(s.start) : s.startRaw || '';
+                    const durStr = formatDurationHours(s.duration);
+                    const location = s.cardNo && s.cardNo.trim() ? s.cardNo.trim() : 'Unbekannt';
+                    const sessionCost = s.isFree ? 0 : s.energy * COST_PER_KWH;
+                    const freeClass = s.isFree ? 'free' : '';
+                    const badge = s.isFree ? '<span class="badge-free">kostenlos</span>' : '<span class="badge-paid">bezahlt</span>';
+                    sessionsHtml += `
+                        <div class="session-item ${freeClass}">
+                            <div class="session-row1">
+                                <span class="session-date">${dateStr}</span>
+                                <span>${location} ${badge}</span>
+                            </div>
+                            <div class="session-row2">
+                                <span class="session-cost">${s.isFree ? '€0.00' : '€'+fmt(sessionCost)}</span>
+                                <span class="session-duration">🕐 ${durStr}</span>
+                                <span class="session-energy">${fmt(s.energy)} <small>kWh</small></span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                sessionsHtml = `<div style="padding:12px 0; color:#8a9aa8; text-align:center;">Keine Sitzungen in diesem Monat</div>`;
+            }
+
+            // Gesamtübersicht
+            const totalEnergy = allSessions.reduce((sum, s) => sum + s.energy, 0);
+            const totalFree = allSessions.filter(s => s.isFree).reduce((sum, s) => sum + s.energy, 0);
+            const totalPaid = totalEnergy - totalFree;
+            const totalCost = totalPaid * COST_PER_KWH;
+            const allDates = allSessions.map(s => s.start).filter(d => d);
+            let dateRange = '';
+            if (allDates.length) {
+                const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+                const months = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+                dateRange = `${minDate.getDate()}. ${months[minDate.getMonth()]} ${minDate.getFullYear()} – ${maxDate.getDate()}. ${months[maxDate.getMonth()]} ${maxDate.getFullYear()}`;
+            }
+
+            let html = `
+                <div class="summary-card">
+                    <div class="summary-label">Gesamtbetrag · Gesamtzeit</div>
+                    <div class="summary-row">
+                        <span class="summary-total-kwh">${fmt(totalEnergy)} <small>kWh</small></span>
+                        <span class="summary-cost">€${fmt(totalCost)}</span>
+                    </div>
+                    <div class="summary-detail">
+                        <span class="free">🟢 Kostenlos: ${fmt(totalFree)} kWh</span>
+                        <span class="paid">🔵 Bezahlt: ${fmt(totalPaid)} kWh</span>
+                    </div>
+                    <div class="summary-date-range">${dateRange}</div>
+                </div>
+
+                <div class="month-nav-card">
+                    <div class="month-nav">
+                        <button class="nav-btn" id="prevMonthBtn">◀</button>
+                        <span class="month-title">${monthName} <span class="year">${year}</span></span>
+                        <button class="nav-btn" id="nextMonthBtn">▶</button>
+                    </div>
+                    <div class="month-stats">
+                        <span class="month-stat-item">
+                            <span class="stat-value">${fmt(monthTotal)}</span>
+                            <span class="stat-label">kWh</span>
+                        </span>
+                        <span class="month-stat-item">
+                            <span class="stat-value">${fmt(monthAvg)}</span>
+                            <span class="stat-label">kWh ⌀</span>
+                        </span>
+                        <span class="month-stat-item">
+                            <span class="stat-value">€${fmt(monthCost)}</span>
+                            <span class="stat-label">Kosten</span>
+                        </span>
+                    </div>
+                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length}
+                        ${monthFree > 0 ? '· 🟢 '+fmt(monthFree)+' kWh kostenlos' : ''}
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">Tägliche Energie (kWh) – <span style="color:#34a853;">grün = kostenlos</span>, <span style="color:#1a73e8;">blau = bezahlt</span></div>
+                        <div class="chart-bars-wrapper">
+                            <div class="chart-bars" style="height:${barHeight+20}px; flex-wrap:nowrap;">
+                                ${barsHtml}
+                            </div>
+                        </div>
+                        <div class="chart-labels" style="display:flex; padding:0 2px; margin-top:2px;">
+                            ${labelsHtml}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="session-list">
+                    ${sessionsHtml}
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Navigation
+            document.getElementById('prevMonthBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (currentMonthIndex < monthKeys.length - 1) {
+                    currentMonthIndex++;
+                    render();
+                } else {
+                    showToast('Kein älterer Monat vorhanden');
+                }
+            });
+            document.getElementById('nextMonthBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (currentMonthIndex > 0) {
+                    currentMonthIndex--;
+                    render();
+                } else {
+                    showToast('Sie sind bereits beim neuesten Monat');
+                }
+            });
+        }
+
+        // ============================================================
+        // IMPORT HANDLER
+        // ============================================================
+        function handleFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            const files = Array.from(fileList);
+            let loaded = 0;
+            let totalAdded = 0;
+
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const sessions = parseExcelFile(data);
+                        const added = mergeSessions(sessions);
+                        totalAdded += added;
+                        loaded++;
+                        if (loaded === files.length) {
+                            updateMonthKeys();
+                            currentMonthIndex = 0;
+                            render();
+                            showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''})`);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast(`❌ Fehler beim Lesen von ${file.name}`);
+                        loaded++;
+                        if (loaded === files.length) render();
+                    }
+                };
+                reader.onerror = function() {
+                    showToast(`❌ Fehler beim Lesen von ${file.name}`);
+                    loaded++;
+                    if (loaded === files.length) render();
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        // ============================================================
+        // EVENT BINDING
+        // ============================================================
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('headerImportBtn').addEventListener('click', () => fileInput.click());
+        document.getElementById('fabImportBtn').addEventListener('click', () => fileInput.click());
+        const emptyBtn = document.getElementById('emptyImportBtn');
+        if (emptyBtn) emptyBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                handleFiles(this.files);
+            }
+            this.value = '';
+        });
+
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+
+        // ============================================================
+        // START
+        // ============================================================
+        loadDemoData();
+        if (allSessions.length === 0) render();
+
+        console.log('✅ EV Ladehistorie mit lückenloser Monatsansicht ab April 2026 gestartet');
+    </script>
+
+</body>
+</html>
