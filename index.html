@@ -14,16 +14,14 @@
             box-sizing: border-box;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-
         body {
             background: #f0f4f8;
             padding: 0 0 40px 0;
             min-height: 100vh;
         }
-
         .app-header {
             background: linear-gradient(145deg, #003d6b 0%, #0066b3 100%);
-            padding: 16px 18px 14px 18px;
+            padding: 12px 18px 10px 18px;
             box-shadow: 0 4px 20px rgba(0, 60, 120, 0.4);
             position: sticky;
             top: 0;
@@ -33,15 +31,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         .header-left .car-icon {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             background: rgba(255,255,255,0.15);
             border-radius: 50%;
             display: flex;
@@ -50,60 +50,107 @@
             backdrop-filter: blur(2px);
         }
         .header-left .car-icon svg {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             fill: #fff;
         }
         .header-left .title {
             color: #fff;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             letter-spacing: 0.5px;
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .header-left .title small {
             display: block;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 400;
             opacity: 0.8;
             letter-spacing: 0.3px;
         }
-        .import-btn {
+        .header-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .import-btn, .action-btn {
             background: rgba(255, 255, 255, 0.18);
             border: none;
             color: #fff;
-            padding: 6px 16px;
+            padding: 4px 10px;
             border-radius: 30px;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 3px;
             cursor: pointer;
             transition: background 0.2s;
             backdrop-filter: blur(2px);
+            white-space: nowrap;
         }
-        .import-btn:hover {
+        .import-btn:hover, .action-btn:hover {
             background: rgba(255, 255, 255, 0.30);
         }
-        .import-btn svg {
-            width: 16px;
-            height: 16px;
+        .import-btn svg, .action-btn svg {
+            width: 12px;
+            height: 12px;
             fill: currentColor;
         }
-        #fileInput {
-            display: none;
+        #fileInput, #restoreInput { display: none; }
+
+        /* Token-Zeile – minimal */
+        .token-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            flex-wrap: wrap;
         }
+        .token-row label {
+            color: rgba(255,255,255,0.7);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        .token-row input {
+            flex: 1;
+            min-width: 120px;
+            padding: 3px 8px;
+            border: none;
+            border-radius: 30px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .token-row input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        .token-row input:focus {
+            background: rgba(255,255,255,0.25);
+        }
+        .token-row .save-status {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            white-space: nowrap;
+        }
+        .token-row .save-status.ok { color: #34a853; }
+        .token-row .save-status.err { color: #ea4335; }
 
         .summary-card {
             background: #fff;
-            margin: 18px 16px 12px 16px;
-            padding: 18px 20px 16px 20px;
-            border-radius: 18px;
+            margin: 14px 16px 10px 16px;
+            padding: 16px 18px 14px 18px;
+            border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
         .summary-label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #6b7a8a;
             letter-spacing: 0.2px;
@@ -112,26 +159,26 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            margin-top: 4px;
+            margin-top: 2px;
         }
         .summary-total-kwh {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             color: #003d6b;
         }
         .summary-total-kwh small {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 500;
             color: #6b7a8a;
             margin-left: 4px;
         }
         .summary-cost {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: #003d6b;
         }
         .summary-cost small {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 400;
             color: #6b7a8a;
             margin-left: 2px;
@@ -139,136 +186,124 @@
         .summary-detail {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
-            font-size: 14px;
+            margin-top: 6px;
+            font-size: 13px;
             color: #4a5a6a;
             border-top: 1px solid #ecf0f3;
-            padding-top: 8px;
+            padding-top: 6px;
+            flex-wrap: wrap;
+            gap: 4px;
         }
-        .summary-detail .free {
-            color: #34a853;
-        }
-        .summary-detail .paid {
-            color: #0066b3;
-        }
+        .summary-detail .free { color: #34a853; }
+        .summary-detail .paid { color: #0066b3; }
+        .summary-detail .status { color: #6b7a8a; font-size: 11px; }
 
         .month-nav-card {
             background: #fff;
-            margin: 0 16px 12px 16px;
-            padding: 16px 20px 14px 20px;
-            border-radius: 18px;
+            margin: 0 16px 10px 16px;
+            padding: 14px 18px 12px 18px;
+            border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
         .month-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .month-nav .nav-btn {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 22px;
             color: #0066b3;
             cursor: pointer;
-            padding: 0 12px;
+            padding: 0 10px;
             line-height: 1;
             touch-action: manipulation;
             transition: opacity 0.2s;
         }
-        .month-nav .nav-btn:active {
-            opacity: 0.5;
-        }
+        .month-nav .nav-btn:active { opacity: 0.5; }
         .month-nav .month-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: #003d6b;
         }
         .month-nav .month-title .year {
             font-weight: 400;
-            font-size: 16px;
+            font-size: 14px;
             color: #6b7a8a;
         }
-
         .month-stats {
             display: flex;
             justify-content: space-between;
             margin-top: 4px;
             flex-wrap: wrap;
-            gap: 4px 0;
+            gap: 2px 0;
         }
         .month-stat-item {
             display: flex;
             align-items: baseline;
             gap: 4px;
-            font-size: 14px;
+            font-size: 13px;
             color: #2c3e50;
         }
         .month-stat-item .stat-value {
             font-weight: 700;
-            font-size: 17px;
+            font-size: 16px;
             color: #003d6b;
         }
         .month-stat-item .stat-label {
             color: #8a9aa8;
-            font-size: 13px;
+            font-size: 12px;
         }
         .month-session-count {
-            font-size: 13px;
+            font-size: 12px;
             color: #6b7a8a;
-            margin-top: 6px;
+            margin-top: 4px;
             border-top: 1px solid #ecf0f3;
-            padding-top: 8px;
+            padding-top: 6px;
         }
 
         .chart-container {
-            margin-top: 12px;
+            margin-top: 10px;
             border-top: 1px solid #ecf0f3;
-            padding-top: 12px;
+            padding-top: 10px;
         }
         .chart-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #6b7a8a;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             letter-spacing: 0.2px;
         }
         .chart-bars-wrapper {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
         .chart-bars {
             display: flex;
             align-items: flex-end;
-            height: 100px;
+            height: 90px;
             min-width: 100%;
             gap: 2px;
         }
         .chart-bar {
             flex: 1 0 0;
-            min-width: 6px;
-            border-radius: 4px 4px 0 0;
+            min-width: 5px;
+            border-radius: 3px 3px 0 0;
             transition: height 0.2s;
             min-height: 2px;
             position: relative;
         }
-        .chart-bar.free {
-            background: #34a853;
-        }
-        .chart-bar.paid {
-            background: #0066b3;
-        }
-        .chart-bar.zero {
-            background: #e9ecef;
-        }
-        .chart-bar:hover {
-            opacity: 0.8;
-        }
+        .chart-bar.free { background: #34a853; }
+        .chart-bar.paid { background: #0066b3; }
+        .chart-bar.zero { background: #e9ecef; }
+        .chart-bar:hover { opacity: 0.8; }
         .chart-labels {
             display: flex;
-            margin-top: 4px;
-            font-size: 8px;
+            margin-top: 2px;
+            font-size: 7px;
             color: #8a9aa8;
             justify-content: space-between;
             padding: 0 2px;
@@ -278,33 +313,31 @@
             text-align: center;
             transform: rotate(-45deg);
             white-space: nowrap;
-            font-size: 7px;
+            font-size: 6px;
         }
 
         .session-list {
-            margin: 0 16px 12px 16px;
+            margin: 0 16px 10px 16px;
         }
         .session-item {
             background: #fff;
-            border-radius: 16px;
-            padding: 14px 18px;
-            margin-bottom: 8px;
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 6px;
             box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            border-left: 4px solid #0066b3; /* blau = daheim */
+            gap: 3px;
+            border-left: 4px solid #0066b3;
         }
-        .session-item.free {
-            border-left-color: #34a853; /* grün = Arbeit */
-        }
+        .session-item.free { border-left-color: #34a853; }
         .session-row1 {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .session-date {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #003d6b;
         }
@@ -315,69 +348,69 @@
             margin-top: 2px;
         }
         .session-cost {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #003d6b;
         }
         .session-duration {
-            font-size: 14px;
+            font-size: 13px;
             color: #2c3e50;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
         }
         .session-energy {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #003d6b;
         }
         .session-energy small {
             font-weight: 400;
             color: #8a9aa8;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: #8a9aa8;
         }
         .empty-state .empty-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
+            font-size: 40px;
+            margin-bottom: 10px;
             opacity: 0.5;
         }
         .empty-state h3 {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #2c3e50;
             margin-bottom: 4px;
         }
         .empty-state p {
-            font-size: 14px;
+            font-size: 13px;
         }
         .empty-state .hint-btn {
-            margin-top: 16px;
+            margin-top: 14px;
             background: #0066b3;
             color: #fff;
             border: none;
-            padding: 10px 28px;
+            padding: 8px 24px;
             border-radius: 40px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
         }
 
         .toast {
             position: fixed;
-            bottom: 30px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: #1e2e3a;
             color: #fff;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 40px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
             opacity: 0;
@@ -392,13 +425,17 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        @media (max-width: 420px) {
-            .header-left .title { font-size: 16px; }
-            .summary-total-kwh { font-size: 26px; }
-            .summary-cost { font-size: 17px; }
-            .month-nav .month-title { font-size: 17px; }
+        @media (max-width: 500px) {
+            .header-left .title { font-size: 14px; }
+            .summary-total-kwh { font-size: 24px; }
+            .summary-cost { font-size: 16px; }
+            .month-nav .month-title { font-size: 16px; }
             .chart-bar { min-width: 4px; }
-            .chart-labels span { font-size: 6px; }
+            .chart-labels span { font-size: 5px; }
+            .header-actions .action-btn span { display: none; }
+            .header-actions .action-btn { padding: 4px 8px; }
+            .token-row input { min-width: 80px; font-size: 10px; }
+            .token-row label { font-size: 9px; }
         }
         @media (min-width: 600px) {
             body { max-width: 480px; margin: 0 auto; background: #e8ecf0; }
@@ -421,11 +458,33 @@
                     <small>Ladehistorie</small>
                 </div>
             </div>
-            <button class="import-btn" id="headerImportBtn">
-                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                Import
-            </button>
-            <input type="file" id="fileInput" accept=".xlsx,.xls" multiple />
+            <div class="header-actions">
+                <button class="import-btn" id="headerImportBtn">
+                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <span>Import</span>
+                </button>
+                <button class="action-btn" id="backupBtn">
+                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <span>Backup</span>
+                </button>
+                <button class="action-btn" id="restoreBtn">
+                    <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    <span>Wiederherstellen</span>
+                </button>
+                <button class="action-btn" id="githubSaveBtn">
+                    <svg viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12 0 5.302 3.438 9.8 8.205 11.387.6.113.82-.26.82-.58 0-.287-.01-1.05-.015-2.06-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.468-2.38 1.235-3.22-.123-.3-.535-1.52.117-3.16 0 0 1.008-.322 3.3 1.23.96-.267 1.98-.399 3-.399 1.02 0 2.04.132 3 .399 2.29-1.552 3.297-1.23 3.297-1.23.653 1.64.24 2.86.118 3.16.768.84 1.233 1.91 1.233 3.22 0 4.61-2.804 5.62-5.476 5.92.43.37.824 1.102.824 2.22 0 1.602-.015 2.894-.015 3.287 0 .322.216.698.825.578C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                </button>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" multiple />
+                <input type="file" id="restoreInput" accept=".json" />
+            </div>
+        </div>
+
+        <!-- Token-Zeile – minimal -->
+        <div class="token-row">
+            <label>🔑 Token</label>
+            <input type="password" id="githubToken" placeholder="ghp_..." />
+            <span class="save-status" id="saveStatus">● bereit</span>
         </div>
     </header>
 
@@ -446,6 +505,8 @@
         // KONSTANTEN & ZUSTAND
         // ============================================================
         const COST_PER_KWH = 0.267;
+        const GITHUB_REPO = 'acendrion1984/Passat';
+        const GITHUB_PATH = 'ladedaten.json';
         let allSessions = [];
         let monthKeys = [];
         let currentMonthIndex = 0;
@@ -521,6 +582,134 @@
         }
 
         // ============================================================
+        // PERSISTENZ (localStorage)
+        // ============================================================
+        function saveToLocalStorage() {
+            try {
+                const data = allSessions.map(s => ({
+                    start: s.start ? s.start.toISOString() : null,
+                    startRaw: s.startRaw,
+                    end: s.end ? s.end.toISOString() : null,
+                    endRaw: s.endRaw,
+                    duration: s.duration,
+                    durationRaw: s.durationRaw,
+                    energy: s.energy,
+                    name: s.name,
+                    cardNo: s.cardNo || '',
+                    isFree: s.isFree || false,
+                }));
+                localStorage.setItem('passat_gte_data', JSON.stringify(data));
+            } catch (e) { console.warn('localStorage save error', e); }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem('passat_gte_data');
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                allSessions = data.map(s => ({
+                    start: s.start ? new Date(s.start) : null,
+                    startRaw: s.startRaw || '',
+                    end: s.end ? new Date(s.end) : null,
+                    endRaw: s.endRaw || '',
+                    duration: s.duration || 0,
+                    durationRaw: s.durationRaw || '',
+                    energy: s.energy || 0,
+                    name: s.name || 'Ace',
+                    cardNo: s.cardNo || '',
+                    isFree: s.isFree || false,
+                }));
+                return true;
+            } catch (e) { return false; }
+        }
+
+        // ============================================================
+        // GITHUB SPEICHERN (mit Token aus Header)
+        // ============================================================
+        async function saveToGitHub() {
+            const tokenInput = document.getElementById('githubToken');
+            const token = tokenInput.value.trim();
+            if (!token) {
+                showToast('⚠️ Bitte GitHub-Token in der Token-Zeile eingeben', 3000);
+                return false;
+            }
+
+            const statusEl = document.getElementById('saveStatus');
+            statusEl.textContent = '● speichern...';
+            statusEl.className = 'save-status';
+
+            try {
+                // Daten vorbereiten
+                const data = allSessions.map(s => ({
+                    start: s.start ? s.start.toISOString() : null,
+                    startRaw: s.startRaw || '',
+                    end: s.end ? s.end.toISOString() : null,
+                    endRaw: s.endRaw || '',
+                    duration: s.duration || 0,
+                    durationRaw: s.durationRaw || '',
+                    energy: s.energy || 0,
+                    name: s.name || 'Ace',
+                    cardNo: s.cardNo || '',
+                    isFree: s.isFree || false,
+                }));
+
+                const content = JSON.stringify(data, null, 2);
+                const encoded = btoa(unescape(encodeURIComponent(content)));
+
+                // SHA abrufen (für Update)
+                let sha = null;
+                const headResp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                    }
+                });
+                if (headResp.ok) {
+                    const headData = await headResp.json();
+                    sha = headData.sha;
+                }
+
+                // Commit
+                const payload = {
+                    message: `Update Ladedaten ${new Date().toLocaleString()}`,
+                    content: encoded,
+                    branch: 'main'
+                };
+                if (sha) payload.sha = sha;
+
+                const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (resp.ok) {
+                    statusEl.textContent = '● ✅ gespeichert';
+                    statusEl.className = 'save-status ok';
+                    showToast('✅ Erfolgreich auf GitHub gespeichert', 2500);
+                    return true;
+                } else {
+                    const err = await resp.json();
+                    console.error(err);
+                    statusEl.textContent = '● ❌ Fehler';
+                    statusEl.className = 'save-status err';
+                    showToast(`❌ GitHub-Fehler: ${err.message || resp.status}`, 4000);
+                    return false;
+                }
+            } catch (e) {
+                console.error(e);
+                statusEl.textContent = '● ❌ Fehler';
+                statusEl.className = 'save-status err';
+                showToast(`❌ Netzwerkfehler: ${e.message}`, 4000);
+                return false;
+            }
+        }
+
+        // ============================================================
         // PARSER (Import)
         // ============================================================
         function parseExcelFile(arrayBuffer) {
@@ -580,7 +769,7 @@
                     energy: energy,
                     name: nameVal,
                     cardNo: cardVal,
-                    isFree: false, // importierte = bezahlt = daheim
+                    isFree: false,
                 });
             }
             return sessions;
@@ -614,7 +803,7 @@
         }
 
         // ============================================================
-        // SIMULATION KOSTENLOSE ARBEITSLADUNGEN (mit Enddatum)
+        // SIMULATION KOSTENLOSE ARBEITSLADUNGEN
         // ============================================================
         function generateWorkSessions(year, month, totalEnergy, maxDay = null) {
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -662,7 +851,7 @@
         }
 
         // ============================================================
-        // MONATSSCHLÜSSEL (von April 2026 bis max Monat, mindestens August)
+        // MONATSSCHLÜSSEL
         // ============================================================
         function updateMonthKeys() {
             const startYear = 2026, startMonth = 4;
@@ -694,7 +883,6 @@
         // DEMO-DATEN LADEN
         // ============================================================
         function loadDemoData() {
-            // Bezahlte Sitzungen aus Excel (Juli/August) – alle sind "daheim" (blau)
             const rawData = [
                 { start: '2026/08/13 21:06', end: '2026/08/13 23:13', dur: '2hour7minute', energy: 4.81 },
                 { start: '2026/08/13 07:39', end: '2026/08/13 11:34', dur: '3hour55minute', energy: 10.67 },
@@ -733,11 +921,10 @@
                     energy: fixEnergy(d.energy),
                     name: 'Ace',
                     cardNo: '',
-                    isFree: false, // daheim
+                    isFree: false,
                 };
             });
 
-            // Generierte April/Mai-Daten (bezahlt – daheim)
             function generateAprilMayPaid() {
                 const start = new Date(2026, 3, 30);
                 const end = new Date(2026, 4, 30);
@@ -782,7 +969,6 @@
             }
             const aprilMay = generateAprilMayPaid();
 
-            // Kostenlose Arbeitstage (grün): Juni 145 kWh, Juli 72 kWh (bis 12.07.)
             const workJune = generateWorkSessions(2026, 6, 145);
             const workJuly = generateWorkSessions(2026, 7, 72, 12);
 
@@ -797,8 +983,9 @@
             allSessions = all;
             updateMonthKeys();
             currentMonthIndex = 0;
+            saveToLocalStorage();
             render();
-            showToast(`📊 ${allSessions.length} Ladevorgänge geladen – blau = daheim, grün = Arbeit`);
+            showToast(`📊 ${allSessions.length} Ladevorgänge geladen – blau = daheim, grün = Arbeit`, 3000);
         }
 
         // ============================================================
@@ -847,7 +1034,7 @@
             const monthCost = monthPaid * COST_PER_KWH;
 
             let barsHtml = '';
-            const barHeight = 100;
+            const barHeight = 90;
             for (let d = 1; d <= daysInMonth; d++) {
                 const val = dayMap[d].total || 0;
                 const height = Math.max(2, (val / maxVal) * barHeight);
@@ -855,7 +1042,7 @@
                 if (val > 0) {
                     if (dayMap[d].free > 0 && dayMap[d].paid === 0) cls = 'free';
                     else if (dayMap[d].paid > 0 && dayMap[d].free === 0) cls = 'paid';
-                    else if (dayMap[d].free > 0 && dayMap[d].paid > 0) cls = 'paid'; // gemischt → daheim (blau)
+                    else if (dayMap[d].free > 0 && dayMap[d].paid > 0) cls = 'paid';
                 }
                 barsHtml += `<div class="chart-bar ${cls}" style="height:${height}px;" title="${d}. ${monthName} ${year}: ${fmt(val)} kWh (Arbeit: ${fmt(dayMap[d].free)}, daheim: ${fmt(dayMap[d].paid)})"></div>`;
             }
@@ -863,7 +1050,7 @@
             let labelsHtml = '';
             for (let d = 1; d <= daysInMonth; d++) {
                 const show = (d % 2 === 0) || d === 1 || d === daysInMonth;
-                labelsHtml += `<span style="flex:1;text-align:center;font-size:7px;color:#8a9aa8;transform:rotate(-45deg);white-space:nowrap;${!show?'visibility:hidden':''}">${d}</span>`;
+                labelsHtml += `<span style="flex:1;text-align:center;font-size:6px;color:#8a9aa8;transform:rotate(-45deg);white-space:nowrap;${!show?'visibility:hidden':''}">${d}</span>`;
             }
 
             let sessionsHtml = '';
@@ -887,10 +1074,9 @@
                     `;
                 }
             } else {
-                sessionsHtml = `<div style="padding:12px 0; color:#8a9aa8; text-align:center;">Keine Sitzungen in diesem Monat</div>`;
+                sessionsHtml = `<div style="padding:10px 0; color:#8a9aa8; text-align:center;">Keine Sitzungen in diesem Monat</div>`;
             }
 
-            // Gesamtübersicht
             const totalEnergy = allSessions.reduce((sum, s) => sum + s.energy, 0);
             const totalFree = allSessions.filter(s => s.isFree).reduce((sum, s) => sum + s.energy, 0);
             const totalPaid = totalEnergy - totalFree;
@@ -914,8 +1100,9 @@
                     <div class="summary-detail">
                         <span class="free">🟢 Arbeit: ${fmt(totalFree)} kWh</span>
                         <span class="paid">🔵 Daheim: ${fmt(totalPaid)} kWh</span>
+                        <span class="status">${allSessions.length} Sitzungen</span>
                     </div>
-                    <div class="summary-date-range">${dateRange}</div>
+                    <div class="summary-date-range" style="font-size:12px;color:#8a9aa8;margin-top:4px;">${dateRange}</div>
                 </div>
 
                 <div class="month-nav-card">
@@ -1004,8 +1191,14 @@
                         if (loaded === files.length) {
                             updateMonthKeys();
                             currentMonthIndex = 0;
+                            saveToLocalStorage();
                             render();
-                            showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''}) – alle als daheim (blau)`);
+                            showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''}) – alle als daheim (blau)`, 3000);
+                            // Automatisch nach GitHub sichern (wenn Token vorhanden)
+                            const token = document.getElementById('githubToken').value.trim();
+                            if (token) {
+                                setTimeout(() => saveToGitHub(), 500);
+                            }
                         }
                     } catch (err) {
                         console.error(err);
@@ -1024,12 +1217,85 @@
         }
 
         // ============================================================
+        // BACKUP / RESTORE
+        // ============================================================
+        function backupData() {
+            const data = allSessions.map(s => ({
+                start: s.start ? s.start.toISOString() : null,
+                startRaw: s.startRaw || '',
+                end: s.end ? s.end.toISOString() : null,
+                endRaw: s.endRaw || '',
+                duration: s.duration || 0,
+                durationRaw: s.durationRaw || '',
+                energy: s.energy || 0,
+                name: s.name || 'Ace',
+                cardNo: s.cardNo || '',
+                isFree: s.isFree || false,
+            }));
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `passat_gte_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ Backup heruntergeladen', 2000);
+        }
+
+        function restoreData(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    allSessions = data.map(s => ({
+                        start: s.start ? new Date(s.start) : null,
+                        startRaw: s.startRaw || '',
+                        end: s.end ? new Date(s.end) : null,
+                        endRaw: s.endRaw || '',
+                        duration: s.duration || 0,
+                        durationRaw: s.durationRaw || '',
+                        energy: s.energy || 0,
+                        name: s.name || 'Ace',
+                        cardNo: s.cardNo || '',
+                        isFree: s.isFree || false,
+                    }));
+                    updateMonthKeys();
+                    currentMonthIndex = 0;
+                    saveToLocalStorage();
+                    render();
+                    showToast(`✅ ${allSessions.length} Sitzungen wiederhergestellt`, 3000);
+                    // Automatisch nach GitHub sichern (wenn Token vorhanden)
+                    const token = document.getElementById('githubToken').value.trim();
+                    if (token) {
+                        setTimeout(() => saveToGitHub(), 500);
+                    }
+                } catch (err) {
+                    showToast('❌ Fehler beim Wiederherstellen: ungültige Datei', 3000);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ============================================================
         // EVENT BINDING
         // ============================================================
         const fileInput = document.getElementById('fileInput');
         document.getElementById('headerImportBtn').addEventListener('click', () => fileInput.click());
-        const emptyBtn = document.getElementById('emptyImportBtn');
-        if (emptyBtn) emptyBtn.addEventListener('click', () => fileInput.click());
+        document.getElementById('emptyImportBtn').addEventListener('click', () => fileInput.click());
+
+        document.getElementById('backupBtn').addEventListener('click', backupData);
+
+        document.getElementById('restoreBtn').addEventListener('click', () => {
+            document.getElementById('restoreInput').click();
+        });
+        document.getElementById('restoreInput').addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                restoreData(this.files[0]);
+            }
+            this.value = '';
+        });
+
+        document.getElementById('githubSaveBtn').addEventListener('click', saveToGitHub);
 
         fileInput.addEventListener('change', function(e) {
             if (this.files && this.files.length > 0) {
@@ -1046,13 +1312,29 @@
             }
         });
 
+        // Token aus localStorage laden
+        const tokenInput = document.getElementById('githubToken');
+        const savedToken = localStorage.getItem('github_token');
+        if (savedToken) tokenInput.value = savedToken;
+        tokenInput.addEventListener('change', function() {
+            localStorage.setItem('github_token', this.value.trim());
+        });
+
         // ============================================================
         // START
         // ============================================================
-        loadDemoData();
+        const hasData = loadFromLocalStorage();
+        if (hasData && allSessions.length) {
+            updateMonthKeys();
+            currentMonthIndex = 0;
+            render();
+            showToast(`📊 ${allSessions.length} Ladevorgänge geladen (lokal gespeichert)`, 2500);
+        } else {
+            loadDemoData();
+        }
         if (allSessions.length === 0) render();
 
-        console.log('✅ Passat GTE Ladehistorie – ohne Quellenangaben, Farbe zeigt Herkunft (blau=daheim, grün=Arbeit)');
+        console.log('✅ Passat GTE Ladehistorie – mit minimaler Token-Zeile für GitHub');
     </script>
 
 </body>
