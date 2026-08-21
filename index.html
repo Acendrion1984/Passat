@@ -100,7 +100,6 @@
         }
         #fileInput, #restoreInput { display: none; }
 
-        /* Token-Zeile – minimal */
         .token-row {
             display: flex;
             align-items: center;
@@ -141,6 +140,7 @@
         }
         .token-row .save-status.ok { color: #34a853; }
         .token-row .save-status.err { color: #ea4335; }
+        .token-row .save-status.sync { color: #fbbc04; }
 
         .summary-card {
             background: #fff;
@@ -624,8 +624,73 @@
         }
 
         // ============================================================
-        // GITHUB SPEICHERN (mit Token aus Header)
+        // GITHUB LADEN & SPEICHERN
         // ============================================================
+        async function loadFromGitHub() {
+            const tokenInput = document.getElementById('githubToken');
+            const token = tokenInput.value.trim();
+            if (!token) return false;
+
+            const statusEl = document.getElementById('saveStatus');
+            statusEl.textContent = '● lade...';
+            statusEl.className = 'save-status sync';
+
+            try {
+                const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                    }
+                });
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        statusEl.textContent = '● keine Daten auf GitHub';
+                        statusEl.className = 'save-status';
+                        return false;
+                    }
+                    throw new Error(`HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                const content = atob(data.content);
+                const sessions = JSON.parse(content);
+                // Daten in allSessions umwandeln
+                const newSessions = sessions.map(s => ({
+                    start: s.start ? new Date(s.start) : null,
+                    startRaw: s.startRaw || '',
+                    end: s.end ? new Date(s.end) : null,
+                    endRaw: s.endRaw || '',
+                    duration: s.duration || 0,
+                    durationRaw: s.durationRaw || '',
+                    energy: s.energy || 0,
+                    name: s.name || 'Ace',
+                    cardNo: s.cardNo || '',
+                    isFree: s.isFree || false,
+                }));
+                // Vergleichen mit lokalen Daten (nach Startzeit)
+                // Wenn GitHub neuer ist (oder lokal leer), ersetzen
+                if (allSessions.length === 0 || newSessions.length > allSessions.length) {
+                    allSessions = newSessions;
+                    updateMonthKeys();
+                    currentMonthIndex = 0;
+                    saveToLocalStorage();
+                    render();
+                    statusEl.textContent = '● ✅ synchronisiert';
+                    statusEl.className = 'save-status ok';
+                    showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen)`, 3000);
+                    return true;
+                } else {
+                    statusEl.textContent = '● lokal aktuell';
+                    statusEl.className = 'save-status ok';
+                    return false;
+                }
+            } catch (e) {
+                console.error(e);
+                statusEl.textContent = '● ❌ Verbindung fehlgeschlagen';
+                statusEl.className = 'save-status err';
+                return false;
+            }
+        }
+
         async function saveToGitHub() {
             const tokenInput = document.getElementById('githubToken');
             const token = tokenInput.value.trim();
@@ -636,10 +701,9 @@
 
             const statusEl = document.getElementById('saveStatus');
             statusEl.textContent = '● speichern...';
-            statusEl.className = 'save-status';
+            statusEl.className = 'save-status sync';
 
             try {
-                // Daten vorbereiten
                 const data = allSessions.map(s => ({
                     start: s.start ? s.start.toISOString() : null,
                     startRaw: s.startRaw || '',
@@ -656,7 +720,6 @@
                 const content = JSON.stringify(data, null, 2);
                 const encoded = btoa(unescape(encodeURIComponent(content)));
 
-                // SHA abrufen (für Update)
                 let sha = null;
                 const headResp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
                     headers: {
@@ -669,7 +732,6 @@
                     sha = headData.sha;
                 }
 
-                // Commit
                 const payload = {
                     message: `Update Ladedaten ${new Date().toLocaleString()}`,
                     content: encoded,
@@ -880,7 +942,7 @@
         }
 
         // ============================================================
-        // DEMO-DATEN LADEN
+        // DEMO-DATEN LADEN (falls kein Backup existiert)
         // ============================================================
         function loadDemoData() {
             const rawData = [
@@ -1264,7 +1326,6 @@
                     saveToLocalStorage();
                     render();
                     showToast(`✅ ${allSessions.length} Sitzungen wiederhergestellt`, 3000);
-                    // Automatisch nach GitHub sichern (wenn Token vorhanden)
                     const token = document.getElementById('githubToken').value.trim();
                     if (token) {
                         setTimeout(() => saveToGitHub(), 500);
@@ -1312,29 +1373,58 @@
             }
         });
 
-        // Token aus localStorage laden
+        // Token speichern und bei Änderung automatisch verbinden
         const tokenInput = document.getElementById('githubToken');
         const savedToken = localStorage.getItem('github_token');
         if (savedToken) tokenInput.value = savedToken;
+
         tokenInput.addEventListener('change', function() {
             localStorage.setItem('github_token', this.value.trim());
+            // Bei Token-Änderung: Verbindung testen und ggf. Daten laden
+            if (this.value.trim()) {
+                setTimeout(() => loadFromGitHub(), 300);
+            }
         });
 
         // ============================================================
-        // START
+        // START – Automatische Wiederherstellung der Verbindung
         // ============================================================
-        const hasData = loadFromLocalStorage();
-        if (hasData && allSessions.length) {
-            updateMonthKeys();
-            currentMonthIndex = 0;
-            render();
-            showToast(`📊 ${allSessions.length} Ladevorgänge geladen (lokal gespeichert)`, 2500);
-        } else {
-            loadDemoData();
-        }
-        if (allSessions.length === 0) render();
+        (async function init() {
+            // 1. Lokale Daten laden
+            const hasLocal = loadFromLocalStorage();
 
-        console.log('✅ Passat GTE Ladehistorie – mit minimaler Token-Zeile für GitHub');
+            // 2. Wenn Token existiert, von GitHub laden (überschreibt lokal, falls neuer)
+            const token = tokenInput.value.trim();
+            if (token) {
+                const loaded = await loadFromGitHub();
+                if (loaded) {
+                    // Daten wurden von GitHub geladen – alles erledigt
+                    return;
+                }
+            }
+
+            // 3. Falls keine lokalen Daten, Demo laden
+            if (!hasLocal || allSessions.length === 0) {
+                loadDemoData();
+            } else {
+                // Lokale Daten vorhanden – anzeigen
+                updateMonthKeys();
+                currentMonthIndex = 0;
+                render();
+                showToast(`📊 ${allSessions.length} Ladevorgänge geladen (lokal gespeichert)`, 2500);
+                // Wenn Token vorhanden, aber keine GitHub-Daten (404), trotzdem speichern
+                if (token && allSessions.length > 0) {
+                    // Versuche, die lokalen Daten auf GitHub zu sichern (falls noch nicht existent)
+                    const statusEl = document.getElementById('saveStatus');
+                    if (statusEl.textContent.includes('keine Daten')) {
+                        setTimeout(() => saveToGitHub(), 500);
+                    }
+                }
+            }
+            if (allSessions.length === 0) render();
+        })();
+
+        console.log('✅ Passat GTE Ladehistorie – Token wird lokal gespeichert, Verbindung automatisch wiederhergestellt');
     </script>
 
 </body>
