@@ -1,5 +1,29 @@
 [
   {
+    "start": "2026-08-23T19:22:00.000Z",
+    "startRaw": "2026/08/23 21:22",
+    "end": "2026-08-23T23:03:00.000Z",
+    "endRaw": "2026/08/24 01:03",
+    "duration": 3.6833333333333336,
+    "durationRaw": "3hour41minute",
+    "energy": 9.79,
+    "name": "Ace",
+    "cardNo": "",
+    "isFree": false
+  },
+  {
+    "start": "2026-08-21T21:12:00.000Z",
+    "startRaw": "2026/08/21 23:12",
+    "end": "2026-08-22T01:34:00.000Z",
+    "endRaw": "2026/08/22 03:34",
+    "duration": 4.366666666666666,
+    "durationRaw": "4hour22minute",
+    "energy": 9.33,
+    "name": "Ace",
+    "cardNo": "",
+    "isFree": false
+  },
+  {
     "start": "2026-08-21T14:41:00.000Z",
     "startRaw": "2026/08/21 16:41",
     "end": "2026-08-21T17:10:00.000Z",
