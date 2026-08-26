@@ -7,10 +7,12 @@
     "duration": 1.5,
     "durationRaw": "1hour30minute",
     "energy": 4.3,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": false,
     "cost": 1.32,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -21,10 +23,12 @@
     "duration": 1.7333333333333334,
     "durationRaw": "1hour44minute",
     "energy": 5.02,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": false,
     "cost": 1.54,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -47,10 +51,12 @@
     "duration": 1.4666666666666668,
     "durationRaw": "1hour28minute",
     "energy": 4.13,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": false,
     "cost": 1.27,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -61,10 +67,12 @@
     "duration": 2.2,
     "durationRaw": "2hour12minute",
     "energy": 6.29,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": false,
     "cost": 1.93,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -267,10 +275,12 @@
     "duration": 0.48333333333333334,
     "durationRaw": "0hour29minute",
     "energy": 3.08,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -281,10 +291,12 @@
     "duration": 1.2666666666666666,
     "durationRaw": "1hour16minute",
     "energy": 5.69,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -307,10 +319,12 @@
     "duration": 0.03333333333333333,
     "durationRaw": "0hour2minute",
     "energy": 0.1,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -345,10 +359,12 @@
     "duration": 2.6833333333333336,
     "durationRaw": "2hour41minute",
     "energy": 9.47,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -359,10 +375,12 @@
     "duration": 1.5666666666666667,
     "durationRaw": "1hour34minute",
     "energy": 10.06,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P4"
   },
   {
@@ -409,10 +427,12 @@
     "duration": 2.1166666666666667,
     "durationRaw": "2hour7minute",
     "energy": 7.45,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -435,10 +455,12 @@
     "duration": 1.0333333333333334,
     "durationRaw": "1hour2minute",
     "energy": 5.8,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -449,10 +471,12 @@
     "duration": 0.65,
     "durationRaw": "0hour39minute",
     "energy": 6.31,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -463,10 +487,12 @@
     "duration": 0.9,
     "durationRaw": "0hour54minute",
     "energy": 3.75,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -477,10 +503,12 @@
     "duration": 1.0666666666666667,
     "durationRaw": "1hour4minute",
     "energy": 5.86,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P4"
   },
   {
@@ -491,10 +519,12 @@
     "duration": 0.8833333333333333,
     "durationRaw": "0hour53minute",
     "energy": 4.26,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -517,10 +547,12 @@
     "duration": 0.95,
     "durationRaw": "0hour57minute",
     "energy": 6.04,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -531,10 +563,12 @@
     "duration": 0.4,
     "durationRaw": "0hour24minute",
     "energy": 3.02,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -557,10 +591,12 @@
     "duration": 2.1666666666666665,
     "durationRaw": "2hour10minute",
     "energy": 7.63,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -571,10 +607,12 @@
     "duration": 1.5333333333333332,
     "durationRaw": "1hour32minute",
     "energy": 8.02,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -585,10 +623,12 @@
     "duration": 1.6166666666666667,
     "durationRaw": "1hour37minute",
     "energy": 5.71,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -611,10 +651,12 @@
     "duration": 1.1333333333333333,
     "durationRaw": "1hour8minute",
     "energy": 7.14,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -661,10 +703,12 @@
     "duration": 0.6833333333333333,
     "durationRaw": "0hour41minute",
     "energy": 3.62,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
@@ -675,10 +719,12 @@
     "duration": 1.75,
     "durationRaw": "1hour45minute",
     "energy": 6.13,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P2"
   },
   {
@@ -689,10 +735,12 @@
     "duration": 1.3666666666666667,
     "durationRaw": "1hour22minute",
     "energy": 8.77,
-    "name": "Schaeffler",
+    "name": "Arbeit",
+    "source": "Schaeffler (Arbeit)",
     "cardNo": "",
     "isFree": true,
     "cost": 0.0,
+    "pricePerKWh": 0.307,
     "location": "SWE_P3"
   },
   {
