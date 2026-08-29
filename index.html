@@ -98,6 +98,12 @@
             height: 12px;
             fill: currentColor;
         }
+        .action-btn.danger {
+            background: rgba(234, 67, 53, 0.35);
+        }
+        .action-btn.danger:hover {
+            background: rgba(234, 67, 53, 0.55);
+        }
         #fileInput, #restoreInput { display: none; }
 
         .token-row {
@@ -475,6 +481,10 @@
                     <svg viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12 0 5.302 3.438 9.8 8.205 11.387.6.113.82-.26.82-.58 0-.287-.01-1.05-.015-2.06-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.468-2.38 1.235-3.22-.123-.3-.535-1.52.117-3.16 0 0 1.008-.322 3.3 1.23.96-.267 1.98-.399 3-.399 1.02 0 2.04.132 3 .399 2.29-1.552 3.297-1.23 3.297-1.23.653 1.64.24 2.86.118 3.16.768.84 1.233 1.91 1.233 3.22 0 4.61-2.804 5.62-5.476 5.92.43.37.824 1.102.824 2.22 0 1.602-.015 2.894-.015 3.287 0 .322.216.698.825.578C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z"/></svg>
                     <span>GitHub</span>
                 </button>
+                <button class="action-btn danger" id="clearBtn">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    <span>Leeren</span>
+                </button>
                 <input type="file" id="fileInput" accept=".xlsx,.xls" multiple />
                 <input type="file" id="restoreInput" accept=".json" />
             </div>
@@ -695,7 +705,7 @@
             const tokenInput = document.getElementById('githubToken');
             const token = tokenInput.value.trim();
             if (!token) {
-                showToast('⚠️ Bitte GitHub-Token in der Token-Zeile eingeben', 3000);
+                showToast('⚠ Bitte GitHub-Token in der Token-Zeile eingeben', 3000);
                 return false;
             }
 
@@ -772,6 +782,29 @@
         }
 
         // ============================================================
+        // DATEN LEEREN
+        // ============================================================
+        async function clearAllData() {
+            if (!confirm('Wirklich alle Ladedaten löschen? Dies kann nicht rückgängig gemacht werden.')) {
+                return;
+            }
+            allSessions = [];
+            monthKeys = [];
+            currentMonthIndex = 0;
+            localStorage.removeItem('passat_gte_data');
+            render();
+            showToast('🗑 Alle Daten wurden gelöscht', 2500);
+
+            // Optional auch auf GitHub leeren, falls Token vorhanden und gewünscht
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) {
+                if (confirm('Auch die auf GitHub gespeicherten Daten leeren?')) {
+                    await saveToGitHub();
+                }
+            }
+        }
+
+        // ============================================================
         // PARSER (Import)
         // ============================================================
         function parseExcelFile(arrayBuffer) {
@@ -788,7 +821,7 @@
                 }
                 if (headerIdx >= 0) break;
             }
-            if (headerIdx < 0) { showToast('⚠️ Keine Kopfzeile gefunden.'); return []; }
+            if (headerIdx < 0) { showToast('⚠ Keine Kopfzeile gefunden.'); return []; }
 
             const sessions = [];
             const headerRow = data[headerIdx];
@@ -802,7 +835,7 @@
                 else if (cell === 'Name') idxName = j;
                 else if (cell === 'Card No') idxCard = j;
             }
-            if (idxStart < 0 || idxEnergy < 0) { showToast('⚠️ Spalten nicht gefunden.'); return []; }
+            if (idxStart < 0 || idxEnergy < 0) { showToast('⚠ Spalten nicht gefunden.'); return []; }
 
             for (let i = headerIdx + 1; i < data.length; i++) {
                 const row = data[i];
@@ -865,70 +898,23 @@
         }
 
         // ============================================================
-        // SIMULATION KOSTENLOSE ARBEITSLADUNGEN
-        // ============================================================
-        function generateWorkSessions(year, month, totalEnergy, maxDay = null) {
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const endDay = (maxDay !== null) ? Math.min(maxDay, daysInMonth) : daysInMonth;
-            const weekdays = [];
-            for (let d = 1; d <= endDay; d++) {
-                const date = new Date(year, month-1, d);
-                const day = date.getDay();
-                if (day >= 1 && day <= 5) weekdays.push(d);
-            }
-            if (weekdays.length === 0) return [];
-
-            let weights = weekdays.map(() => 0.7 + Math.random() * 1.6);
-            const sumWeights = weights.reduce((a,b) => a+b, 0);
-            let energies = weights.map(w => (w / sumWeights) * totalEnergy);
-            energies = energies.map(e => Math.round(e * 100) / 100);
-            let diff = totalEnergy - energies.reduce((a,b) => a+b, 0);
-            if (Math.abs(diff) > 0.01) {
-                energies[0] = Math.round((energies[0] + diff) * 100) / 100;
-            }
-
-            const sessions = [];
-            for (let i = 0; i < weekdays.length; i++) {
-                const day = weekdays[i];
-                const energy = energies[i];
-                if (energy <= 0) continue;
-                const start = new Date(year, month-1, day, 8 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60));
-                const durHours = 1 + Math.random() * 2;
-                const end = new Date(start);
-                end.setHours(end.getHours() + Math.floor(durHours), end.getMinutes() + Math.round((durHours % 1) * 60));
-                sessions.push({
-                    start: start,
-                    startRaw: start.toISOString().replace('T', ' ').slice(0,16),
-                    end: end,
-                    endRaw: end.toISOString().replace('T', ' ').slice(0,16),
-                    duration: durHours,
-                    durationRaw: `${Math.floor(durHours)}hour${Math.round((durHours%1)*60)}minute`,
-                    energy: energy,
-                    name: 'Arbeit',
-                    cardNo: '',
-                    isFree: true,
-                });
-            }
-            return sessions;
-        }
-
-        // ============================================================
         // MONATSSCHLÜSSEL
         // ============================================================
         function updateMonthKeys() {
-            const startYear = 2026, startMonth = 4;
-            let endYear = 2026, endMonth = 8;
-            if (allSessions.length) {
-                const dates = allSessions.map(s => s.start).filter(d => d);
-                if (dates.length) {
-                    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-                    endYear = maxDate.getFullYear();
-                    endMonth = maxDate.getMonth() + 1;
-                }
+            if (allSessions.length === 0) {
+                monthKeys = [];
+                return;
             }
-            if (endYear < 2026 || (endYear === 2026 && endMonth < 8)) {
-                endYear = 2026; endMonth = 8;
+            const dates = allSessions.map(s => s.start).filter(d => d);
+            if (dates.length === 0) {
+                monthKeys = [];
+                return;
             }
+            const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+            const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+            const startYear = minDate.getFullYear(), startMonth = minDate.getMonth() + 1;
+            const endYear = maxDate.getFullYear(), endMonth = maxDate.getMonth() + 1;
+
             const keys = [];
             let current = new Date(startYear, startMonth-1, 1);
             const end = new Date(endYear, endMonth-1, 1);
@@ -939,115 +925,6 @@
             }
             keys.sort((a, b) => b.localeCompare(a));
             monthKeys = keys;
-        }
-
-        // ============================================================
-        // DEMO-DATEN LADEN (falls kein Backup existiert)
-        // ============================================================
-        function loadDemoData() {
-            const rawData = [
-                { start: '2026/08/13 21:06', end: '2026/08/13 23:13', dur: '2hour7minute', energy: 4.81 },
-                { start: '2026/08/13 07:39', end: '2026/08/13 11:34', dur: '3hour55minute', energy: 10.67 },
-                { start: '2026/08/12 00:10', end: '2026/08/12 04:54', dur: '4hour44minute', energy: 10.36 },
-                { start: '2026/08/12 00:09', end: '2026/08/12 00:10', dur: '0hour1minute', energy: 0.02 },
-                { start: '2026/08/09 20:14', end: '2026/08/10 00:08', dur: '3hour54minute', energy: 10.63 },
-                { start: '2026/08/07 21:27', end: '2026/08/08 00:30', dur: '3hour3minute', energy: 5.032 },
-                { start: '2026/08/06 12:17', end: '2026/08/06 18:24', dur: '6hour7minute', energy: 10.475 },
-                { start: '2026/08/04 13:07', end: '2026/08/04 13:30', dur: '0hour23minute', energy: 0.32 },
-                { start: '2026/08/02 18:12', end: '2026/08/04 01:12', dur: '31hour0minute', energy: 11.10 },
-                { start: '2026/07/30 20:56', end: '2026/07/31 01:58', dur: '5hour2minute', energy: 10.87 },
-                { start: '2026/07/30 13:00', end: '2026/07/30 17:31', dur: '4hour31minute', energy: 1.87 },
-                { start: '2026/07/29 17:11', end: '2026/07/29 22:17', dur: '5hour6minute', energy: 10.869 },
-                { start: '2026/07/26 22:15', end: '2026/07/27 02:15', dur: '4hour0minute', energy: 10.14 },
-                { start: '2026/07/25 20:01', end: '2026/07/25 23:19', dur: '3hour18minute', energy: 6.03 },
-                { start: '2026/07/24 17:53', end: '2026/07/24 20:42', dur: '2hour49minute', energy: 4.80 },
-                { start: '2026/07/24 15:03', end: '2026/07/24 15:24', dur: '0hour21minute', energy: 0.94 },
-                { start: '2026/07/21 09:05', end: '2026/07/22 05:05', dur: '20hour0minute', energy: 0.00 },
-                { start: '2026/07/18 22:13', end: '2026/07/19 02:24', dur: '4hour11minute', energy: 8.23 },
-                { start: '2026/07/15 16:29', end: '2026/07/15 18:05', dur: '1hour36minute', energy: 4.35 },
-                { start: '2026/07/15 00:23', end: '2026/07/15 03:34', dur: '3hour11minute', energy: 4.94 },
-                { start: '2026/07/14 22:17', end: '2026/07/15 00:23', dur: '2hour6minute', energy: 5.62 },
-                { start: '2026/07/14 22:15', end: '2026/07/14 22:17', dur: '0hour2minute', energy: 0.04 },
-            ];
-            const sessions = rawData.map(d => {
-                const startDate = parseDateTime(d.start);
-                const endDate = d.end ? parseDateTime(d.end) : null;
-                const dur = d.dur ? parseDuration(d.dur) : (endDate && startDate ? (endDate - startDate) / 3600000 : 0);
-                return {
-                    start: startDate,
-                    startRaw: d.start,
-                    end: endDate,
-                    endRaw: d.end,
-                    duration: dur,
-                    durationRaw: d.dur,
-                    energy: fixEnergy(d.energy),
-                    name: 'Ace',
-                    cardNo: '',
-                    isFree: false,
-                };
-            });
-
-            function generateAprilMayPaid() {
-                const start = new Date(2026, 3, 30);
-                const end = new Date(2026, 4, 30);
-                const days = [];
-                let cur = new Date(start);
-                while (cur <= end) {
-                    days.push(new Date(cur));
-                    cur.setDate(cur.getDate() + 1);
-                }
-                const raw = [
-                    2.3, 0.0, 4.1, 1.8, 5.6, 3.2, 7.0, 1.2, 0.5, 4.8,
-                    6.3, 2.7, 0.0, 5.1, 3.9, 8.2, 2.0, 4.4, 6.8, 1.5,
-                    3.0, 5.9, 2.2, 0.8, 4.7, 7.5, 1.9, 3.6, 5.3, 2.9, 4.0
-                ];
-                const sum = raw.reduce((a,b) => a+b, 0);
-                const scale = 125 / sum;
-                const scaled = raw.map(v => Math.round(v * scale * 100) / 100);
-                const sessions = [];
-                for (let i = 0; i < days.length; i++) {
-                    const d = days[i];
-                    const energy = scaled[i];
-                    if (energy === 0) continue;
-                    const startDate = new Date(d);
-                    startDate.setHours(12 + Math.floor(Math.random()*6), Math.floor(Math.random()*60), 0, 0);
-                    const durHours = 1 + Math.random() * 2;
-                    const endDate = new Date(startDate);
-                    endDate.setHours(endDate.getHours() + Math.floor(durHours), endDate.getMinutes() + Math.round((durHours%1)*60));
-                    sessions.push({
-                        start: startDate,
-                        startRaw: startDate.toISOString().replace('T',' ').slice(0,16),
-                        end: endDate,
-                        endRaw: endDate.toISOString().replace('T',' ').slice(0,16),
-                        duration: durHours,
-                        durationRaw: `${Math.floor(durHours)}hour${Math.round((durHours%1)*60)}minute`,
-                        energy: energy,
-                        name: 'Privat',
-                        cardNo: '',
-                        isFree: false,
-                    });
-                }
-                return sessions;
-            }
-            const aprilMay = generateAprilMayPaid();
-
-            const workJune = generateWorkSessions(2026, 6, 145);
-            const workJuly = generateWorkSessions(2026, 7, 72, 12);
-
-            const all = [...sessions, ...aprilMay, ...workJune, ...workJuly];
-
-            all.sort((a, b) => {
-                if (!a.start) return 1;
-                if (!b.start) return -1;
-                return b.start.getTime() - a.start.getTime();
-            });
-
-            allSessions = all;
-            updateMonthKeys();
-            currentMonthIndex = 0;
-            saveToLocalStorage();
-            render();
-            showToast(`📊 ${allSessions.length} Ladevorgänge geladen – blau = daheim, grün = Arbeit`, 3000);
         }
 
         // ============================================================
@@ -1357,6 +1234,7 @@
         });
 
         document.getElementById('githubSaveBtn').addEventListener('click', saveToGitHub);
+        document.getElementById('clearBtn').addEventListener('click', clearAllData);
 
         fileInput.addEventListener('change', function(e) {
             if (this.files && this.files.length > 0) {
@@ -1398,30 +1276,17 @@
             if (token) {
                 const loaded = await loadFromGitHub();
                 if (loaded) {
-                    // Daten wurden von GitHub geladen – alles erledigt
                     return;
                 }
             }
 
-            // 3. Falls keine lokalen Daten, Demo laden
-            if (!hasLocal || allSessions.length === 0) {
-                loadDemoData();
-            } else {
-                // Lokale Daten vorhanden – anzeigen
-                updateMonthKeys();
-                currentMonthIndex = 0;
-                render();
+            // 3. Lokale Daten anzeigen (kein Demo-Fallback mehr – leerer Zustand, falls nichts vorhanden)
+            updateMonthKeys();
+            currentMonthIndex = 0;
+            render();
+            if (allSessions.length > 0) {
                 showToast(`📊 ${allSessions.length} Ladevorgänge geladen (lokal gespeichert)`, 2500);
-                // Wenn Token vorhanden, aber keine GitHub-Daten (404), trotzdem speichern
-                if (token && allSessions.length > 0) {
-                    // Versuche, die lokalen Daten auf GitHub zu sichern (falls noch nicht existent)
-                    const statusEl = document.getElementById('saveStatus');
-                    if (statusEl.textContent.includes('keine Daten')) {
-                        setTimeout(() => saveToGitHub(), 500);
-                    }
-                }
             }
-            if (allSessions.length === 0) render();
         })();
 
         console.log('✅ Passat GTE Ladehistorie – Token wird lokal gespeichert, Verbindung automatisch wiederhergestellt');
