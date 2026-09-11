@@ -200,8 +200,6 @@
             flex-wrap: wrap;
             gap: 4px;
         }
-        .summary-detail .free { color: #34a853; }
-        .summary-detail .paid { color: #0066b3; }
         .summary-detail .status { color: #6b7a8a; font-size: 11px; }
 
         .month-nav-card {
@@ -293,6 +291,7 @@
             height: 90px;
             min-width: 100%;
             gap: 2px;
+            flex-wrap: nowrap;
         }
         .chart-bar {
             flex: 1 0 0;
@@ -301,9 +300,8 @@
             transition: height 0.2s;
             min-height: 2px;
             position: relative;
+            background: #0066b3;
         }
-        .chart-bar.free { background: #34a853; }
-        .chart-bar.paid { background: #0066b3; }
         .chart-bar.zero { background: #e9ecef; }
         .chart-bar:hover { opacity: 0.8; }
         .chart-labels {
@@ -336,7 +334,6 @@
             gap: 3px;
             border-left: 4px solid #0066b3;
         }
-        .session-item.free { border-left-color: #34a853; }
         .session-row1 {
             display: flex;
             justify-content: space-between;
@@ -461,7 +458,7 @@
                 </div>
                 <div class="title">
                     Passat GTE
-                    <small>Ladehistorie</small>
+                    <small>Ladehistorie · Zuhause</small>
                 </div>
             </div>
             <div class="header-actions">
@@ -517,24 +514,25 @@
         const COST_PER_KWH = 0.267;
         const GITHUB_REPO = 'acendrion1984/Passat';
         const GITHUB_PATH = 'ladedaten.json';
-        let allSessions = [];
+        const DATA_URL = 'ladedaten.json';
+        // Werte über diesem Schwellwert (kWh) sind ein bekannter Faktor-10-
+        // Messfehler des Zählers und werden durch 10 geteilt. 11.14 ist der
+        // höchste beobachtete plausible Vollladewert; alles darüber (50+) sind
+        // die echten Ausreißer.
+        const ENERGY_FIX_THRESHOLD = 11.14;
+        const DEDUPE_WINDOW_MS = 120000; // 2 Minuten
+
+        let allSessions = []; // { start: Date, end: Date|null, energy: number }
         let monthKeys = [];
         let currentMonthIndex = 0;
+
+        const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni',
+            'Juli','August','September','Oktober','November','Dezember'];
+        const DAY_NAMES = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
 
         // ============================================================
         // HELFER
         // ============================================================
-        function parseDuration(str) {
-            if (!str) return 0;
-            const s = str.toLowerCase().trim();
-            let hours = 0, minutes = 0;
-            const hMatch = s.match(/(\d+)hour/);
-            const mMatch = s.match(/(\d+)minute/);
-            if (hMatch) hours = parseInt(hMatch[1], 10);
-            if (mMatch) minutes = parseInt(mMatch[1], 10);
-            return hours + minutes / 60;
-        }
-
         function parseDateTime(str) {
             if (!str) return null;
             const parts = str.trim().split(' ');
@@ -552,12 +550,9 @@
 
         function formatSessionDate(date) {
             if (!date) return '';
-            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
-            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-            const dayName = days[date.getDay()];
+            const dayName = DAY_NAMES[date.getDay()];
             const dayNum = date.getDate();
-            const monthName = months[date.getMonth()];
+            const monthName = MONTH_NAMES[date.getMonth()];
             let hours = date.getHours();
             const minutes = String(date.getMinutes()).padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -577,11 +572,16 @@
         function fixEnergy(val) {
             if (typeof val === 'string') val = parseFloat(val.replace(',', '.'));
             if (isNaN(val)) return 0;
-            if (val > 11.2) return Math.round((val / 10) * 1000) / 1000;
+            if (val > ENERGY_FIX_THRESHOLD) return Math.round((val / 10) * 1000) / 1000;
             return Math.round(val * 1000) / 1000;
         }
 
         function fmt(v) { return Number(v).toFixed(2); }
+
+        function sessionDuration(s) {
+            if (!s.start || !s.end) return 0;
+            return (s.end.getTime() - s.start.getTime()) / 3600000;
+        }
 
         function showToast(msg, duration = 2800) {
             const el = document.getElementById('toast');
@@ -592,23 +592,33 @@
         }
 
         // ============================================================
+        // SERIALISIERUNG (gemeinsam für localStorage, GitHub, Backup)
+        // ============================================================
+        function serializeSessions(sessions) {
+            return sessions.map(s => ({
+                start: s.start ? s.start.toISOString() : null,
+                end: s.end ? s.end.toISOString() : null,
+                energy: s.energy || 0,
+            }));
+        }
+
+        function deserializeSessions(raw) {
+            if (!Array.isArray(raw)) return [];
+            return raw
+                .map(s => ({
+                    start: s.start ? new Date(s.start) : null,
+                    end: s.end ? new Date(s.end) : null,
+                    energy: fixEnergy(s.energy || 0),
+                }))
+                .filter(s => s.start && s.energy > 0); // Nullwerte streichen
+        }
+
+        // ============================================================
         // PERSISTENZ (localStorage)
         // ============================================================
         function saveToLocalStorage() {
             try {
-                const data = allSessions.map(s => ({
-                    start: s.start ? s.start.toISOString() : null,
-                    startRaw: s.startRaw,
-                    end: s.end ? s.end.toISOString() : null,
-                    endRaw: s.endRaw,
-                    duration: s.duration,
-                    durationRaw: s.durationRaw,
-                    energy: s.energy,
-                    name: s.name,
-                    cardNo: s.cardNo || '',
-                    isFree: s.isFree || false,
-                }));
-                localStorage.setItem('passat_gte_data', JSON.stringify(data));
+                localStorage.setItem('passat_gte_data', JSON.stringify(serializeSessions(allSessions)));
             } catch (e) { console.warn('localStorage save error', e); }
         }
 
@@ -616,21 +626,24 @@
             try {
                 const raw = localStorage.getItem('passat_gte_data');
                 if (!raw) return false;
-                const data = JSON.parse(raw);
-                allSessions = data.map(s => ({
-                    start: s.start ? new Date(s.start) : null,
-                    startRaw: s.startRaw || '',
-                    end: s.end ? new Date(s.end) : null,
-                    endRaw: s.endRaw || '',
-                    duration: s.duration || 0,
-                    durationRaw: s.durationRaw || '',
-                    energy: s.energy || 0,
-                    name: s.name || 'Ace',
-                    cardNo: s.cardNo || '',
-                    isFree: s.isFree || false,
-                }));
-                return true;
+                allSessions = deserializeSessions(JSON.parse(raw));
+                return allSessions.length > 0;
             } catch (e) { return false; }
+        }
+
+        // ============================================================
+        // DATEN AUS DEM REPO LADEN (ladedaten.json, ohne Token)
+        // ============================================================
+        async function loadFromRepoJson() {
+            try {
+                const resp = await fetch(DATA_URL, { cache: 'no-store' });
+                if (!resp.ok) return false;
+                const sessions = deserializeSessions(await resp.json());
+                const added = mergeSessions(sessions);
+                return added > 0;
+            } catch (e) {
+                return false; // z.B. bei file:// ohne Server – kein Fehler nötig
+            }
         }
 
         // ============================================================
@@ -661,25 +674,10 @@
                     throw new Error(`HTTP ${resp.status}`);
                 }
                 const data = await resp.json();
-                const content = atob(data.content);
-                const sessions = JSON.parse(content);
-                // Daten in allSessions umwandeln
-                const newSessions = sessions.map(s => ({
-                    start: s.start ? new Date(s.start) : null,
-                    startRaw: s.startRaw || '',
-                    end: s.end ? new Date(s.end) : null,
-                    endRaw: s.endRaw || '',
-                    duration: s.duration || 0,
-                    durationRaw: s.durationRaw || '',
-                    energy: s.energy || 0,
-                    name: s.name || 'Ace',
-                    cardNo: s.cardNo || '',
-                    isFree: s.isFree || false,
-                }));
-                // Vergleichen mit lokalen Daten (nach Startzeit)
-                // Wenn GitHub neuer ist (oder lokal leer), ersetzen
-                if (allSessions.length === 0 || newSessions.length > allSessions.length) {
-                    allSessions = newSessions;
+                const content = decodeURIComponent(escape(atob(data.content)));
+                const newSessions = deserializeSessions(JSON.parse(content));
+                const added = mergeSessions(newSessions);
+                if (added > 0) {
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
@@ -687,12 +685,11 @@
                     statusEl.textContent = '● ✅ synchronisiert';
                     statusEl.className = 'save-status ok';
                     showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen)`, 3000);
-                    return true;
                 } else {
                     statusEl.textContent = '● lokal aktuell';
                     statusEl.className = 'save-status ok';
-                    return false;
                 }
+                return added > 0;
             } catch (e) {
                 console.error(e);
                 statusEl.textContent = '● ❌ Verbindung fehlgeschlagen';
@@ -714,20 +711,7 @@
             statusEl.className = 'save-status sync';
 
             try {
-                const data = allSessions.map(s => ({
-                    start: s.start ? s.start.toISOString() : null,
-                    startRaw: s.startRaw || '',
-                    end: s.end ? s.end.toISOString() : null,
-                    endRaw: s.endRaw || '',
-                    duration: s.duration || 0,
-                    durationRaw: s.durationRaw || '',
-                    energy: s.energy || 0,
-                    name: s.name || 'Ace',
-                    cardNo: s.cardNo || '',
-                    isFree: s.isFree || false,
-                }));
-
-                const content = JSON.stringify(data, null, 2);
+                const content = JSON.stringify(serializeSessions(allSessions), null, 2);
                 const encoded = btoa(unescape(encodeURIComponent(content)));
 
                 let sha = null;
@@ -795,7 +779,6 @@
             render();
             showToast('🗑 Alle Daten wurden gelöscht', 2500);
 
-            // Optional auch auf GitHub leeren, falls Token vorhanden und gewünscht
             const token = document.getElementById('githubToken').value.trim();
             if (token) {
                 if (confirm('Auch die auf GitHub gespeicherten Daten leeren?')) {
@@ -825,15 +808,12 @@
 
             const sessions = [];
             const headerRow = data[headerIdx];
-            let idxStart = -1, idxEnd = -1, idxDuration = -1, idxEnergy = -1, idxName = -1, idxCard = -1;
+            let idxStart = -1, idxEnd = -1, idxEnergy = -1;
             for (let j = 0; j < headerRow.length; j++) {
                 const cell = String(headerRow[j] || '').trim();
                 if (cell.includes('Start time')) idxStart = j;
                 else if (cell.includes('End time')) idxEnd = j;
-                else if (cell.includes('Charging time')) idxDuration = j;
                 else if (cell.includes('Charge energy')) idxEnergy = j;
-                else if (cell === 'Name') idxName = j;
-                else if (cell === 'Card No') idxCard = j;
             }
             if (idxStart < 0 || idxEnergy < 0) { showToast('⚠ Spalten nicht gefunden.'); return []; }
 
@@ -844,51 +824,29 @@
                 if (!startVal) continue;
 
                 const endVal = idxEnd >= 0 && row[idxEnd] ? String(row[idxEnd]).trim() : '';
-                const durVal = idxDuration >= 0 && row[idxDuration] ? String(row[idxDuration]).trim() : '';
-                const energyRaw = idxEnergy >= 0 && row[idxEnergy] !== undefined && row[idxEnergy] !== '' ? parseFloat(String(row[idxEnergy]).replace(',', '.')) : 0;
-                const nameVal = idxName >= 0 && row[idxName] ? String(row[idxName]).trim() : 'Ace';
-                const cardVal = idxCard >= 0 && row[idxCard] ? String(row[idxCard]).trim() : '';
-
+                const energyRaw = row[idxEnergy] !== undefined && row[idxEnergy] !== '' ? row[idxEnergy] : 0;
                 const energy = fixEnergy(energyRaw);
-                const startDate = parseDateTime(startVal);
-                const endDate = endVal ? parseDateTime(endVal) : null;
-                const durationHours = durVal ? parseDuration(durVal) : (endDate && startDate ? (endDate - startDate) / 3600000 : 0);
+                if (energy <= 0) continue; // Nullwerte streichen
 
-                sessions.push({
-                    start: startDate,
-                    startRaw: startVal,
-                    end: endDate,
-                    endRaw: endVal,
-                    duration: durationHours,
-                    durationRaw: durVal,
-                    energy: energy,
-                    name: nameVal,
-                    cardNo: cardVal,
-                    isFree: false,
-                });
+                const startDate = parseDateTime(startVal);
+                if (!startDate) continue;
+                const endDate = endVal ? parseDateTime(endVal) : null;
+
+                sessions.push({ start: startDate, end: endDate, energy: energy });
             }
             return sessions;
         }
 
         function mergeSessions(newSessions) {
-            const existing = [...allSessions];
             const toAdd = [];
             for (const s of newSessions) {
                 if (!s.start) continue;
-                let dup = false;
-                for (const e of existing) {
-                    if (!e.start) continue;
-                    if (Math.abs(e.start.getTime() - s.start.getTime()) < 120000) { dup = true; break; }
-                }
-                if (!dup) {
-                    for (const a of toAdd) {
-                        if (!a.start) continue;
-                        if (Math.abs(a.start.getTime() - s.start.getTime()) < 120000) { dup = true; break; }
-                    }
-                }
-                if (!dup) toAdd.push(s);
+                const isDuplicate = candidates => candidates.some(c =>
+                    c.start && Math.abs(c.start.getTime() - s.start.getTime()) < DEDUPE_WINDOW_MS);
+                if (isDuplicate(allSessions) || isDuplicate(toAdd)) continue;
+                toAdd.push(s);
             }
-            allSessions = [...existing, ...toAdd];
+            allSessions = [...allSessions, ...toAdd];
             allSessions.sort((a, b) => {
                 if (!a.start) return 1;
                 if (!b.start) return -1;
@@ -901,10 +859,6 @@
         // MONATSSCHLÜSSEL
         // ============================================================
         function updateMonthKeys() {
-            if (allSessions.length === 0) {
-                monthKeys = [];
-                return;
-            }
             const dates = allSessions.map(s => s.start).filter(d => d);
             if (dates.length === 0) {
                 monthKeys = [];
@@ -912,15 +866,11 @@
             }
             const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
             const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-            const startYear = minDate.getFullYear(), startMonth = minDate.getMonth() + 1;
-            const endYear = maxDate.getFullYear(), endMonth = maxDate.getMonth() + 1;
-
             const keys = [];
-            let current = new Date(startYear, startMonth-1, 1);
-            const end = new Date(endYear, endMonth-1, 1);
+            let current = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+            const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
             while (current <= end) {
-                const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-                keys.push(key);
+                keys.push(`${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`);
                 current.setMonth(current.getMonth() + 1);
             }
             keys.sort((a, b) => b.localeCompare(a));
@@ -946,66 +896,50 @@
 
             const currentKey = monthKeys[currentMonthIndex];
             const [year, month] = currentKey.split('-').map(Number);
-            const monthName = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][month-1];
+            const monthName = MONTH_NAMES[month-1];
 
-            const monthSessions = allSessions.filter(s => {
-                if (!s.start) return false;
-                return s.start.getFullYear() === year && s.start.getMonth() === month-1;
-            });
+            const monthSessions = allSessions.filter(s =>
+                s.start && s.start.getFullYear() === year && s.start.getMonth() === month-1);
 
             const daysInMonth = new Date(year, month, 0).getDate();
-            const dayMap = {};
-            for (let d = 1; d <= daysInMonth; d++) {
-                dayMap[d] = { total: 0, free: 0, paid: 0 };
-            }
+            const dayTotals = new Array(daysInMonth + 1).fill(0);
             for (const s of monthSessions) {
-                const d = s.start.getDate();
-                dayMap[d].total += s.energy;
-                if (s.isFree) dayMap[d].free += s.energy;
-                else dayMap[d].paid += s.energy;
+                dayTotals[s.start.getDate()] += s.energy;
             }
-            const maxVal = Math.max(0.1, ...Object.values(dayMap).map(v => v.total));
+            const maxVal = Math.max(0.1, ...dayTotals);
 
             const monthTotal = monthSessions.reduce((sum, s) => sum + s.energy, 0);
-            const monthFree = monthSessions.filter(s => s.isFree).reduce((sum, s) => sum + s.energy, 0);
-            const monthPaid = monthTotal - monthFree;
             const monthAvg = monthSessions.length ? monthTotal / monthSessions.length : 0;
-            const monthCost = monthPaid * COST_PER_KWH;
+            const monthCost = monthTotal * COST_PER_KWH;
 
-            let barsHtml = '';
             const barHeight = 90;
+            let barsHtml = '';
             for (let d = 1; d <= daysInMonth; d++) {
-                const val = dayMap[d].total || 0;
+                const val = dayTotals[d];
                 const height = Math.max(2, (val / maxVal) * barHeight);
-                let cls = 'zero';
-                if (val > 0) {
-                    if (dayMap[d].free > 0 && dayMap[d].paid === 0) cls = 'free';
-                    else if (dayMap[d].paid > 0 && dayMap[d].free === 0) cls = 'paid';
-                    else if (dayMap[d].free > 0 && dayMap[d].paid > 0) cls = 'paid';
-                }
-                barsHtml += `<div class="chart-bar ${cls}" style="height:${height}px;" title="${d}. ${monthName} ${year}: ${fmt(val)} kWh (Arbeit: ${fmt(dayMap[d].free)}, daheim: ${fmt(dayMap[d].paid)})"></div>`;
+                const cls = val > 0 ? '' : 'zero';
+                barsHtml += `<div class="chart-bar ${cls}" style="height:${height}px;" title="${d}. ${monthName} ${year}: ${fmt(val)} kWh"></div>`;
             }
 
             let labelsHtml = '';
             for (let d = 1; d <= daysInMonth; d++) {
                 const show = (d % 2 === 0) || d === 1 || d === daysInMonth;
-                labelsHtml += `<span style="flex:1;text-align:center;font-size:6px;color:#8a9aa8;transform:rotate(-45deg);white-space:nowrap;${!show?'visibility:hidden':''}">${d}</span>`;
+                labelsHtml += `<span style="${!show ? 'visibility:hidden' : ''}">${d}</span>`;
             }
 
             let sessionsHtml = '';
             if (monthSessions.length) {
                 for (const s of monthSessions) {
-                    const dateStr = s.start ? formatSessionDate(s.start) : s.startRaw || '';
-                    const durStr = formatDurationHours(s.duration);
-                    const sessionCost = s.isFree ? 0 : s.energy * COST_PER_KWH;
-                    const freeClass = s.isFree ? 'free' : '';
+                    const dateStr = formatSessionDate(s.start);
+                    const durStr = formatDurationHours(sessionDuration(s));
+                    const sessionCost = s.energy * COST_PER_KWH;
                     sessionsHtml += `
-                        <div class="session-item ${freeClass}">
+                        <div class="session-item">
                             <div class="session-row1">
                                 <span class="session-date">${dateStr}</span>
                             </div>
                             <div class="session-row2">
-                                <span class="session-cost">${s.isFree ? '€0.00' : '€'+fmt(sessionCost)}</span>
+                                <span class="session-cost">€${fmt(sessionCost)}</span>
                                 <span class="session-duration">🕐 ${durStr}</span>
                                 <span class="session-energy">${fmt(s.energy)} <small>kWh</small></span>
                             </div>
@@ -1017,19 +951,16 @@
             }
 
             const totalEnergy = allSessions.reduce((sum, s) => sum + s.energy, 0);
-            const totalFree = allSessions.filter(s => s.isFree).reduce((sum, s) => sum + s.energy, 0);
-            const totalPaid = totalEnergy - totalFree;
-            const totalCost = totalPaid * COST_PER_KWH;
+            const totalCost = totalEnergy * COST_PER_KWH;
             const allDates = allSessions.map(s => s.start).filter(d => d);
             let dateRange = '';
             if (allDates.length) {
                 const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
                 const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
-                const months = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-                dateRange = `${minDate.getDate()}. ${months[minDate.getMonth()]} ${minDate.getFullYear()} – ${maxDate.getDate()}. ${months[maxDate.getMonth()]} ${maxDate.getFullYear()}`;
+                dateRange = `${minDate.getDate()}. ${MONTH_NAMES[minDate.getMonth()]} ${minDate.getFullYear()} – ${maxDate.getDate()}. ${MONTH_NAMES[maxDate.getMonth()]} ${maxDate.getFullYear()}`;
             }
 
-            let html = `
+            container.innerHTML = `
                 <div class="summary-card">
                     <div class="summary-label">Gesamtbetrag · Gesamtzeit</div>
                     <div class="summary-row">
@@ -1037,9 +968,7 @@
                         <span class="summary-cost">€${fmt(totalCost)}</span>
                     </div>
                     <div class="summary-detail">
-                        <span class="free">🟢 Arbeit: ${fmt(totalFree)} kWh</span>
-                        <span class="paid">🔵 Daheim: ${fmt(totalPaid)} kWh</span>
-                        <span class="status">${allSessions.length} Sitzungen</span>
+                        <span class="status">🔵 Zuhause · ${allSessions.length} Sitzungen</span>
                     </div>
                     <div class="summary-date-range" style="font-size:12px;color:#8a9aa8;margin-top:4px;">${dateRange}</div>
                 </div>
@@ -1064,19 +993,16 @@
                             <span class="stat-label">Kosten</span>
                         </span>
                     </div>
-                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length}
-                        ${monthFree > 0 ? '· 🟢 '+fmt(monthFree)+' kWh Arbeit' : ''}
-                        ${monthPaid > 0 ? '· 🔵 '+fmt(monthPaid)+' kWh daheim' : ''}
-                    </div>
+                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length}</div>
 
                     <div class="chart-container">
-                        <div class="chart-title">Tägliche Energie (kWh) – <span style="color:#34a853;">grün = Arbeit</span>, <span style="color:#0066b3;">blau = daheim</span></div>
+                        <div class="chart-title">Tägliche Energie (kWh) – Zuhause</div>
                         <div class="chart-bars-wrapper">
-                            <div class="chart-bars" style="height:${barHeight+20}px; flex-wrap:nowrap;">
+                            <div class="chart-bars" style="height:${barHeight+20}px;">
                                 ${barsHtml}
                             </div>
                         </div>
-                        <div class="chart-labels" style="display:flex; padding:0 2px; margin-top:2px;">
+                        <div class="chart-labels">
                             ${labelsHtml}
                         </div>
                     </div>
@@ -1086,8 +1012,6 @@
                     ${sessionsHtml}
                 </div>
             `;
-
-            container.innerHTML = html;
 
             document.getElementById('prevMonthBtn').addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1124,16 +1048,14 @@
                     try {
                         const data = new Uint8Array(e.target.result);
                         const sessions = parseExcelFile(data);
-                        const added = mergeSessions(sessions);
-                        totalAdded += added;
+                        totalAdded += mergeSessions(sessions);
                         loaded++;
                         if (loaded === files.length) {
                             updateMonthKeys();
                             currentMonthIndex = 0;
                             saveToLocalStorage();
                             render();
-                            showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''}) – alle als daheim (blau)`, 3000);
-                            // Automatisch nach GitHub sichern (wenn Token vorhanden)
+                            showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''})`, 3000);
                             const token = document.getElementById('githubToken').value.trim();
                             if (token) {
                                 setTimeout(() => saveToGitHub(), 500);
@@ -1159,19 +1081,7 @@
         // BACKUP / RESTORE
         // ============================================================
         function backupData() {
-            const data = allSessions.map(s => ({
-                start: s.start ? s.start.toISOString() : null,
-                startRaw: s.startRaw || '',
-                end: s.end ? s.end.toISOString() : null,
-                endRaw: s.endRaw || '',
-                duration: s.duration || 0,
-                durationRaw: s.durationRaw || '',
-                energy: s.energy || 0,
-                name: s.name || 'Ace',
-                cardNo: s.cardNo || '',
-                isFree: s.isFree || false,
-            }));
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(serializeSessions(allSessions), null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1185,19 +1095,8 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    allSessions = data.map(s => ({
-                        start: s.start ? new Date(s.start) : null,
-                        startRaw: s.startRaw || '',
-                        end: s.end ? new Date(s.end) : null,
-                        endRaw: s.endRaw || '',
-                        duration: s.duration || 0,
-                        durationRaw: s.durationRaw || '',
-                        energy: s.energy || 0,
-                        name: s.name || 'Ace',
-                        cardNo: s.cardNo || '',
-                        isFree: s.isFree || false,
-                    }));
+                    allSessions = deserializeSessions(JSON.parse(e.target.result));
+                    allSessions.sort((a, b) => b.start.getTime() - a.start.getTime());
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
@@ -1251,45 +1150,44 @@
             }
         });
 
-        // Token speichern und bei Änderung automatisch verbinden
         const tokenInput = document.getElementById('githubToken');
         const savedToken = localStorage.getItem('github_token');
         if (savedToken) tokenInput.value = savedToken;
 
         tokenInput.addEventListener('change', function() {
             localStorage.setItem('github_token', this.value.trim());
-            // Bei Token-Änderung: Verbindung testen und ggf. Daten laden
             if (this.value.trim()) {
                 setTimeout(() => loadFromGitHub(), 300);
             }
         });
 
         // ============================================================
-        // START – Automatische Wiederherstellung der Verbindung
+        // START
         // ============================================================
         (async function init() {
-            // 1. Lokale Daten laden
-            const hasLocal = loadFromLocalStorage();
+            // 1. Lokalen Cache laden (schnell, offline-fähig)
+            loadFromLocalStorage();
 
-            // 2. Wenn Token existiert, von GitHub laden (überschreibt lokal, falls neuer)
+            // 2. Ladedaten.json aus dem Repo laden – das ist die eigentliche
+            //    Datenquelle, keine Werte sind fest in der App hinterlegt.
+            await loadFromRepoJson();
+
+            // 3. Falls ein GitHub-Token hinterlegt ist, zusätzlich damit
+            //    abgleichen (deckt Fälle ab, in denen ladedaten.json per
+            //    fetch() nicht erreichbar ist, z.B. beim Öffnen als lokale Datei).
             const token = tokenInput.value.trim();
             if (token) {
-                const loaded = await loadFromGitHub();
-                if (loaded) {
-                    return;
-                }
+                await loadFromGitHub();
             }
 
-            // 3. Lokale Daten anzeigen (kein Demo-Fallback mehr – leerer Zustand, falls nichts vorhanden)
             updateMonthKeys();
             currentMonthIndex = 0;
+            saveToLocalStorage();
             render();
             if (allSessions.length > 0) {
-                showToast(`📊 ${allSessions.length} Ladevorgänge geladen (lokal gespeichert)`, 2500);
+                showToast(`📊 ${allSessions.length} Ladevorgänge geladen`, 2500);
             }
         })();
-
-        console.log('✅ Passat GTE Ladehistorie – Token wird lokal gespeichert, Verbindung automatisch wiederhergestellt');
     </script>
 
 </body>
