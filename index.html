@@ -293,17 +293,37 @@
             gap: 2px;
             flex-wrap: nowrap;
         }
+        .chart-day {
+            flex: 1 0 0;
+            min-width: 6px;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
+        }
         .chart-bar {
             flex: 1 0 0;
-            min-width: 5px;
-            border-radius: 3px 3px 0 0;
+            min-width: 2px;
+            border-radius: 2px 2px 0 0;
             transition: height 0.2s;
             min-height: 2px;
             position: relative;
             background: #0066b3;
         }
+        .chart-bar.fuel { background: #ea4335; }
         .chart-bar.zero { background: #e9ecef; }
         .chart-bar:hover { opacity: 0.8; }
+        .chart-legend {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #6b7a8a;
+            margin-bottom: 4px;
+        }
+        .chart-legend span { display: flex; align-items: center; gap: 4px; }
+        .chart-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .chart-legend .dot.energy { background: #0066b3; }
+        .chart-legend .dot.fuel { background: #ea4335; }
         .chart-labels {
             display: flex;
             margin-top: 2px;
@@ -334,6 +354,17 @@
             gap: 3px;
             border-left: 4px solid #0066b3;
         }
+        .session-item.fuel { border-left-color: #ea4335; }
+        .session-item .session-delete {
+            background: none;
+            border: none;
+            color: #c7d0d8;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 0 0 8px;
+            line-height: 1;
+        }
+        .session-item .session-delete:hover { color: #ea4335; }
         .session-row1 {
             display: flex;
             justify-content: space-between;
@@ -428,6 +459,65 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 20, 30, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            padding: 20px;
+        }
+        .modal-overlay[hidden] { display: none; }
+        .modal-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 340px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .modal-card h3 {
+            font-size: 16px;
+            color: #003d6b;
+            margin-bottom: 14px;
+        }
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        .modal-field label {
+            font-size: 12px;
+            color: #6b7a8a;
+            font-weight: 500;
+        }
+        .modal-field input {
+            padding: 8px 10px;
+            border: 1px solid #dbe3ea;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .modal-actions button {
+            border: none;
+            border-radius: 30px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .modal-actions .btn-cancel { background: #eef1f4; color: #4a5a6a; }
+        .modal-actions .btn-save { background: #ea4335; color: #fff; }
+
         @media (max-width: 500px) {
             .header-left .title { font-size: 14px; }
             .summary-total-kwh { font-size: 24px; }
@@ -466,6 +556,10 @@
                     <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                     <span>Import</span>
                 </button>
+                <button class="action-btn" id="fuelBtn">
+                    <svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 9H6V5h6v4zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+                    <span>Tanken</span>
+                </button>
                 <button class="action-btn" id="backupBtn">
                     <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                     <span>Backup</span>
@@ -497,6 +591,30 @@
 
     <div id="toast" class="toast"></div>
 
+    <div id="fuelModal" class="modal-overlay" hidden>
+        <div class="modal-card">
+            <h3>⛽ Tankfüllung eintragen</h3>
+            <form id="fuelForm">
+                <div class="modal-field">
+                    <label for="fuelDate">Datum</label>
+                    <input type="date" id="fuelDate" required />
+                </div>
+                <div class="modal-field">
+                    <label for="fuelLiters">Menge (Liter)</label>
+                    <input type="number" id="fuelLiters" step="0.01" min="0.01" placeholder="z. B. 32.5" required />
+                </div>
+                <div class="modal-field">
+                    <label for="fuelPrice">Preis pro Liter (€)</label>
+                    <input type="number" id="fuelPrice" step="0.001" min="0.001" placeholder="z. B. 1.699" required />
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="fuelCancelBtn">Abbrechen</button>
+                    <button type="submit" class="btn-save">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <main id="appContent">
         <div id="emptyState" class="empty-state">
             <div class="empty-icon">🚗</div>
@@ -515,6 +633,8 @@
         const GITHUB_REPO = 'acendrion1984/Passat';
         const GITHUB_PATH = 'ladedaten.json';
         const DATA_URL = 'ladedaten.json';
+        const FUEL_GITHUB_PATH = 'tankdaten.json';
+        const FUEL_DATA_URL = 'tankdaten.json';
         // Werte über diesem Schwellwert (kWh) sind ein bekannter Faktor-10-
         // Messfehler des Zählers und werden durch 10 geteilt. 11.14 ist der
         // höchste beobachtete plausible Vollladewert; alles darüber (50+) sind
@@ -523,6 +643,7 @@
         const DEDUPE_WINDOW_MS = 120000; // 2 Minuten
 
         let allSessions = []; // { start: Date, end: Date|null, energy: number }
+        let fuelEntries = []; // { date: Date, liters: number, pricePerLiter: number }
         let monthKeys = [];
         let currentMonthIndex = 0;
 
@@ -613,6 +734,27 @@
                 .filter(s => s.start && s.energy > 0); // Nullwerte streichen
         }
 
+        function serializeFuel(entries) {
+            return entries.map(f => ({
+                date: f.date ? f.date.toISOString() : null,
+                liters: f.liters || 0,
+                pricePerLiter: f.pricePerLiter || 0,
+            }));
+        }
+
+        function deserializeFuel(raw) {
+            if (!Array.isArray(raw)) return [];
+            return raw
+                .map(f => ({
+                    date: f.date ? new Date(f.date) : null,
+                    liters: Math.round((parseFloat(f.liters) || 0) * 1000) / 1000,
+                    pricePerLiter: Math.round((parseFloat(f.pricePerLiter) || 0) * 1000) / 1000,
+                }))
+                .filter(f => f.date && f.liters > 0 && f.pricePerLiter > 0);
+        }
+
+        function fuelCost(f) { return f.liters * f.pricePerLiter; }
+
         // ============================================================
         // PERSISTENZ (localStorage)
         // ============================================================
@@ -631,27 +773,89 @@
             } catch (e) { return false; }
         }
 
-        // ============================================================
-        // DATEN AUS DEM REPO LADEN (ladedaten.json, ohne Token)
-        // ============================================================
-        async function loadFromRepoJson() {
+        function saveFuelToLocalStorage() {
             try {
-                const resp = await fetch(DATA_URL, { cache: 'no-store' });
-                if (!resp.ok) return false;
-                const sessions = deserializeSessions(await resp.json());
-                const added = mergeSessions(sessions);
-                return added > 0;
-            } catch (e) {
-                return false; // z.B. bei file:// ohne Server – kein Fehler nötig
-            }
+                localStorage.setItem('passat_gte_fuel', JSON.stringify(serializeFuel(fuelEntries)));
+            } catch (e) { console.warn('localStorage save error', e); }
+        }
+
+        function loadFuelFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem('passat_gte_fuel');
+                if (!raw) return false;
+                fuelEntries = deserializeFuel(JSON.parse(raw));
+                return fuelEntries.length > 0;
+            } catch (e) { return false; }
         }
 
         // ============================================================
-        // GITHUB LADEN & SPEICHERN
+        // DATEN AUS DEM REPO LADEN (ladedaten.json / tankdaten.json, ohne Token)
         // ============================================================
+        async function fetchJsonFile(url) {
+            try {
+                const resp = await fetch(url, { cache: 'no-store' });
+                if (!resp.ok) return null;
+                return await resp.json();
+            } catch (e) {
+                return null; // z.B. bei file:// ohne Server – kein Fehler nötig
+            }
+        }
+
+        async function loadFromRepoJson() {
+            const raw = await fetchJsonFile(DATA_URL);
+            if (!raw) return false;
+            return mergeSessions(deserializeSessions(raw)) > 0;
+        }
+
+        async function loadFuelFromRepoJson() {
+            const raw = await fetchJsonFile(FUEL_DATA_URL);
+            if (!raw) return false;
+            return mergeFuelEntries(deserializeFuel(raw)) > 0;
+        }
+
+        // ============================================================
+        // GITHUB LADEN & SPEICHERN (generisch für jede JSON-Datei im Repo)
+        // ============================================================
+        async function githubGetFile(path, token) {
+            const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                }
+            });
+            if (!resp.ok) {
+                if (resp.status === 404) return { notFound: true };
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const data = await resp.json();
+            const content = decodeURIComponent(escape(atob(data.content)));
+            return { sha: data.sha, json: JSON.parse(content) };
+        }
+
+        async function githubPutFile(path, token, content, message) {
+            let sha = null;
+            try {
+                const head = await githubGetFile(path, token);
+                if (!head.notFound) sha = head.sha;
+            } catch (e) { /* Datei existiert evtl. noch nicht */ }
+
+            const encoded = btoa(unescape(encodeURIComponent(content)));
+            const payload = { message, content: encoded, branch: 'main' };
+            if (sha) payload.sha = sha;
+
+            return fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+
         async function loadFromGitHub() {
-            const tokenInput = document.getElementById('githubToken');
-            const token = tokenInput.value.trim();
+            const token = document.getElementById('githubToken').value.trim();
             if (!token) return false;
 
             const statusEl = document.getElementById('saveStatus');
@@ -659,37 +863,30 @@
             statusEl.className = 'save-status sync';
 
             try {
-                const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                    }
-                });
-                if (!resp.ok) {
-                    if (resp.status === 404) {
-                        statusEl.textContent = '● keine Daten auf GitHub';
-                        statusEl.className = 'save-status';
-                        return false;
-                    }
-                    throw new Error(`HTTP ${resp.status}`);
+                let addedTotal = 0;
+                const chargeResult = await githubGetFile(GITHUB_PATH, token);
+                if (!chargeResult.notFound) {
+                    addedTotal += mergeSessions(deserializeSessions(chargeResult.json));
                 }
-                const data = await resp.json();
-                const content = decodeURIComponent(escape(atob(data.content)));
-                const newSessions = deserializeSessions(JSON.parse(content));
-                const added = mergeSessions(newSessions);
-                if (added > 0) {
+                const fuelResult = await githubGetFile(FUEL_GITHUB_PATH, token);
+                if (!fuelResult.notFound) {
+                    addedTotal += mergeFuelEntries(deserializeFuel(fuelResult.json));
+                }
+
+                if (addedTotal > 0) {
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
+                    saveFuelToLocalStorage();
                     render();
                     statusEl.textContent = '● ✅ synchronisiert';
                     statusEl.className = 'save-status ok';
-                    showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen)`, 3000);
+                    showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen)`, 3000);
                 } else {
                     statusEl.textContent = '● lokal aktuell';
                     statusEl.className = 'save-status ok';
                 }
-                return added > 0;
+                return addedTotal > 0;
             } catch (e) {
                 console.error(e);
                 statusEl.textContent = '● ❌ Verbindung fehlgeschlagen';
@@ -699,8 +896,7 @@
         }
 
         async function saveToGitHub() {
-            const tokenInput = document.getElementById('githubToken');
-            const token = tokenInput.value.trim();
+            const token = document.getElementById('githubToken').value.trim();
             if (!token) {
                 showToast('⚠ Bitte GitHub-Token in der Token-Zeile eingeben', 3000);
                 return false;
@@ -711,49 +907,26 @@
             statusEl.className = 'save-status sync';
 
             try {
-                const content = JSON.stringify(serializeSessions(allSessions), null, 2);
-                const encoded = btoa(unescape(encodeURIComponent(content)));
+                const now = new Date().toLocaleString();
+                const chargeContent = JSON.stringify(serializeSessions(allSessions), null, 2);
+                const fuelContent = JSON.stringify(serializeFuel(fuelEntries), null, 2);
 
-                let sha = null;
-                const headResp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                    }
-                });
-                if (headResp.ok) {
-                    const headData = await headResp.json();
-                    sha = headData.sha;
-                }
+                const [chargeResp, fuelResp] = await Promise.all([
+                    githubPutFile(GITHUB_PATH, token, chargeContent, `Update Ladedaten ${now}`),
+                    githubPutFile(FUEL_GITHUB_PATH, token, fuelContent, `Update Tankdaten ${now}`),
+                ]);
 
-                const payload = {
-                    message: `Update Ladedaten ${new Date().toLocaleString()}`,
-                    content: encoded,
-                    branch: 'main'
-                };
-                if (sha) payload.sha = sha;
-
-                const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (resp.ok) {
+                if (chargeResp.ok && fuelResp.ok) {
                     statusEl.textContent = '● ✅ gespeichert';
                     statusEl.className = 'save-status ok';
                     showToast('✅ Erfolgreich auf GitHub gespeichert', 2500);
                     return true;
                 } else {
-                    const err = await resp.json();
-                    console.error(err);
+                    const failed = !chargeResp.ok ? await chargeResp.json() : await fuelResp.json();
+                    console.error(failed);
                     statusEl.textContent = '● ❌ Fehler';
                     statusEl.className = 'save-status err';
-                    showToast(`❌ GitHub-Fehler: ${err.message || resp.status}`, 4000);
+                    showToast(`❌ GitHub-Fehler: ${failed.message || 'unbekannt'}`, 4000);
                     return false;
                 }
             } catch (e) {
@@ -769,13 +942,15 @@
         // DATEN LEEREN
         // ============================================================
         async function clearAllData() {
-            if (!confirm('Wirklich alle Ladedaten löschen? Dies kann nicht rückgängig gemacht werden.')) {
+            if (!confirm('Wirklich alle Lade- und Tankdaten löschen? Dies kann nicht rückgängig gemacht werden.')) {
                 return;
             }
             allSessions = [];
+            fuelEntries = [];
             monthKeys = [];
             currentMonthIndex = 0;
             localStorage.removeItem('passat_gte_data');
+            localStorage.removeItem('passat_gte_fuel');
             render();
             showToast('🗑 Alle Daten wurden gelöscht', 2500);
 
@@ -855,11 +1030,48 @@
             return toAdd.length;
         }
 
+        function mergeFuelEntries(newEntries) {
+            const toAdd = [];
+            for (const f of newEntries) {
+                if (!f.date) continue;
+                const isDuplicate = candidates => candidates.some(c =>
+                    c.date && Math.abs(c.date.getTime() - f.date.getTime()) < DEDUPE_WINDOW_MS &&
+                    c.liters === f.liters && c.pricePerLiter === f.pricePerLiter);
+                if (isDuplicate(fuelEntries) || isDuplicate(toAdd)) continue;
+                toAdd.push(f);
+            }
+            fuelEntries = [...fuelEntries, ...toAdd];
+            fuelEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+            return toAdd.length;
+        }
+
+        function addFuelEntry(date, liters, pricePerLiter) {
+            mergeFuelEntries([{ date, liters, pricePerLiter }]);
+            updateMonthKeys();
+            saveFuelToLocalStorage();
+            render();
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) setTimeout(() => saveToGitHub(), 500);
+        }
+
+        function deleteFuelEntry(index) {
+            if (!confirm('Diese Tankfüllung wirklich löschen?')) return;
+            fuelEntries.splice(index, 1);
+            updateMonthKeys();
+            saveFuelToLocalStorage();
+            render();
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) setTimeout(() => saveToGitHub(), 500);
+        }
+
         // ============================================================
         // MONATSSCHLÜSSEL
         // ============================================================
         function updateMonthKeys() {
-            const dates = allSessions.map(s => s.start).filter(d => d);
+            const dates = [
+                ...allSessions.map(s => s.start),
+                ...fuelEntries.map(f => f.date),
+            ].filter(d => d);
             if (dates.length === 0) {
                 monthKeys = [];
                 return;
@@ -884,7 +1096,7 @@
             const container = document.getElementById('dataContainer');
             const empty = document.getElementById('emptyState');
 
-            if (!allSessions.length || monthKeys.length === 0) {
+            if ((!allSessions.length && !fuelEntries.length) || monthKeys.length === 0) {
                 container.innerHTML = '';
                 empty.style.display = 'block';
                 return;
@@ -900,25 +1112,38 @@
 
             const monthSessions = allSessions.filter(s =>
                 s.start && s.start.getFullYear() === year && s.start.getMonth() === month-1);
+            const monthFuel = fuelEntries.filter(f =>
+                f.date && f.date.getFullYear() === year && f.date.getMonth() === month-1);
 
             const daysInMonth = new Date(year, month, 0).getDate();
-            const dayTotals = new Array(daysInMonth + 1).fill(0);
-            for (const s of monthSessions) {
-                dayTotals[s.start.getDate()] += s.energy;
-            }
-            const maxVal = Math.max(0.1, ...dayTotals);
+            const dayEnergy = new Array(daysInMonth + 1).fill(0);
+            const dayFuel = new Array(daysInMonth + 1).fill(0);
+            for (const s of monthSessions) dayEnergy[s.start.getDate()] += s.energy;
+            for (const f of monthFuel) dayFuel[f.date.getDate()] += f.liters;
+            const maxEnergy = Math.max(0.1, ...dayEnergy);
+            const maxFuel = Math.max(0.1, ...dayFuel);
 
             const monthTotal = monthSessions.reduce((sum, s) => sum + s.energy, 0);
             const monthAvg = monthSessions.length ? monthTotal / monthSessions.length : 0;
             const monthCost = monthTotal * COST_PER_KWH;
+            const monthFuelLiters = monthFuel.reduce((sum, f) => sum + f.liters, 0);
+            const monthFuelCost = monthFuel.reduce((sum, f) => sum + fuelCost(f), 0);
 
             const barHeight = 90;
             let barsHtml = '';
             for (let d = 1; d <= daysInMonth; d++) {
-                const val = dayTotals[d];
-                const height = Math.max(2, (val / maxVal) * barHeight);
-                const cls = val > 0 ? '' : 'zero';
-                barsHtml += `<div class="chart-bar ${cls}" style="height:${height}px;" title="${d}. ${monthName} ${year}: ${fmt(val)} kWh"></div>`;
+                const eVal = dayEnergy[d];
+                const fVal = dayFuel[d];
+                const eHeight = Math.max(2, (eVal / maxEnergy) * barHeight);
+                const fHeight = Math.max(2, (fVal / maxFuel) * barHeight);
+                const eCls = eVal > 0 ? '' : 'zero';
+                const fCls = fVal > 0 ? 'fuel' : 'zero';
+                barsHtml += `
+                    <div class="chart-day" title="${d}. ${monthName} ${year}: ${fmt(eVal)} kWh${fVal > 0 ? ', ' + fmt(fVal) + ' L getankt' : ''}">
+                        <div class="chart-bar ${eCls}" style="height:${eHeight}px;"></div>
+                        <div class="chart-bar ${fCls}" style="height:${fVal > 0 ? fHeight : 2}px;"></div>
+                    </div>
+                `;
             }
 
             let labelsHtml = '';
@@ -927,32 +1152,58 @@
                 labelsHtml += `<span style="${!show ? 'visibility:hidden' : ''}">${d}</span>`;
             }
 
+            const listItems = [
+                ...monthSessions.map(s => ({ type: 'charge', date: s.start, data: s })),
+                ...monthFuel.map(f => ({ type: 'fuel', date: f.date, data: f, fuelIndex: fuelEntries.indexOf(f) })),
+            ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
             let sessionsHtml = '';
-            if (monthSessions.length) {
-                for (const s of monthSessions) {
-                    const dateStr = formatSessionDate(s.start);
-                    const durStr = formatDurationHours(sessionDuration(s));
-                    const sessionCost = s.energy * COST_PER_KWH;
-                    sessionsHtml += `
-                        <div class="session-item">
-                            <div class="session-row1">
-                                <span class="session-date">${dateStr}</span>
+            if (listItems.length) {
+                for (const item of listItems) {
+                    if (item.type === 'charge') {
+                        const s = item.data;
+                        const dateStr = formatSessionDate(s.start);
+                        const durStr = formatDurationHours(sessionDuration(s));
+                        const sessionCost = s.energy * COST_PER_KWH;
+                        sessionsHtml += `
+                            <div class="session-item">
+                                <div class="session-row1">
+                                    <span class="session-date">${dateStr}</span>
+                                </div>
+                                <div class="session-row2">
+                                    <span class="session-cost">€${fmt(sessionCost)}</span>
+                                    <span class="session-duration">🕐 ${durStr}</span>
+                                    <span class="session-energy">${fmt(s.energy)} <small>kWh</small></span>
+                                </div>
                             </div>
-                            <div class="session-row2">
-                                <span class="session-cost">€${fmt(sessionCost)}</span>
-                                <span class="session-duration">🕐 ${durStr}</span>
-                                <span class="session-energy">${fmt(s.energy)} <small>kWh</small></span>
+                        `;
+                    } else {
+                        const f = item.data;
+                        const dateStr = formatSessionDate(f.date);
+                        sessionsHtml += `
+                            <div class="session-item fuel">
+                                <div class="session-row1">
+                                    <span class="session-date">⛽ ${dateStr}</span>
+                                    <button class="session-delete" data-fuel-index="${item.fuelIndex}" title="Löschen">✕</button>
+                                </div>
+                                <div class="session-row2">
+                                    <span class="session-cost">€${fmt(fuelCost(f))}</span>
+                                    <span class="session-duration">€${f.pricePerLiter.toFixed(3)} / L</span>
+                                    <span class="session-energy">${fmt(f.liters)} <small>L</small></span>
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 }
             } else {
-                sessionsHtml = `<div style="padding:10px 0; color:#8a9aa8; text-align:center;">Keine Sitzungen in diesem Monat</div>`;
+                sessionsHtml = `<div style="padding:10px 0; color:#8a9aa8; text-align:center;">Keine Einträge in diesem Monat</div>`;
             }
 
             const totalEnergy = allSessions.reduce((sum, s) => sum + s.energy, 0);
             const totalCost = totalEnergy * COST_PER_KWH;
-            const allDates = allSessions.map(s => s.start).filter(d => d);
+            const totalFuelLiters = fuelEntries.reduce((sum, f) => sum + f.liters, 0);
+            const totalFuelCost = fuelEntries.reduce((sum, f) => sum + fuelCost(f), 0);
+            const allDates = [...allSessions.map(s => s.start), ...fuelEntries.map(f => f.date)].filter(d => d);
             let dateRange = '';
             if (allDates.length) {
                 const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
@@ -969,6 +1220,7 @@
                     </div>
                     <div class="summary-detail">
                         <span class="status">🔵 Zuhause · ${allSessions.length} Sitzungen</span>
+                        <span class="status">⛽ ${fmt(totalFuelLiters)} L · €${fmt(totalFuelCost)}</span>
                     </div>
                     <div class="summary-date-range" style="font-size:12px;color:#8a9aa8;margin-top:4px;">${dateRange}</div>
                 </div>
@@ -992,11 +1244,23 @@
                             <span class="stat-value">€${fmt(monthCost)}</span>
                             <span class="stat-label">Kosten</span>
                         </span>
+                        <span class="month-stat-item">
+                            <span class="stat-value">${fmt(monthFuelLiters)}</span>
+                            <span class="stat-label">L ⛽</span>
+                        </span>
+                        <span class="month-stat-item">
+                            <span class="stat-value">€${fmt(monthFuelCost)}</span>
+                            <span class="stat-label">Kraftstoff</span>
+                        </span>
                     </div>
-                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length}</div>
+                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length} Ladungen, ${monthFuel.length} Tankfüllungen</div>
 
                     <div class="chart-container">
-                        <div class="chart-title">Tägliche Energie (kWh) – Zuhause</div>
+                        <div class="chart-title">Tägliche Energie & Kraftstoff</div>
+                        <div class="chart-legend">
+                            <span><i class="dot energy"></i> Laden (kWh)</span>
+                            <span><i class="dot fuel"></i> Tanken (L)</span>
+                        </div>
                         <div class="chart-bars-wrapper">
                             <div class="chart-bars" style="height:${barHeight+20}px;">
                                 ${barsHtml}
@@ -1030,6 +1294,12 @@
                 } else {
                     showToast('Sie sind bereits beim neuesten Monat');
                 }
+            });
+            container.querySelectorAll('.session-delete[data-fuel-index]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    deleteFuelEntry(parseInt(this.dataset.fuelIndex, 10));
+                });
             });
         }
 
@@ -1081,7 +1351,11 @@
         // BACKUP / RESTORE
         // ============================================================
         function backupData() {
-            const blob = new Blob([JSON.stringify(serializeSessions(allSessions), null, 2)], { type: 'application/json' });
+            const backup = {
+                sessions: serializeSessions(allSessions),
+                fuel: serializeFuel(fuelEntries),
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1095,13 +1369,20 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    allSessions = deserializeSessions(JSON.parse(e.target.result));
+                    const parsed = JSON.parse(e.target.result);
+                    // Älteres Backup-Format war ein reines Array von Ladevorgängen.
+                    const sessionsRaw = Array.isArray(parsed) ? parsed : (parsed.sessions || []);
+                    const fuelRaw = Array.isArray(parsed) ? [] : (parsed.fuel || []);
+                    allSessions = deserializeSessions(sessionsRaw);
                     allSessions.sort((a, b) => b.start.getTime() - a.start.getTime());
+                    fuelEntries = deserializeFuel(fuelRaw);
+                    fuelEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
+                    saveFuelToLocalStorage();
                     render();
-                    showToast(`✅ ${allSessions.length} Sitzungen wiederhergestellt`, 3000);
+                    showToast(`✅ ${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen wiederhergestellt`, 3000);
                     const token = document.getElementById('githubToken').value.trim();
                     if (token) {
                         setTimeout(() => saveToGitHub(), 500);
@@ -1135,6 +1416,31 @@
         document.getElementById('githubSaveBtn').addEventListener('click', saveToGitHub);
         document.getElementById('clearBtn').addEventListener('click', clearAllData);
 
+        const fuelModal = document.getElementById('fuelModal');
+        const fuelForm = document.getElementById('fuelForm');
+        document.getElementById('fuelBtn').addEventListener('click', () => {
+            document.getElementById('fuelDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('fuelLiters').value = '';
+            document.getElementById('fuelPrice').value = '';
+            fuelModal.hidden = false;
+        });
+        document.getElementById('fuelCancelBtn').addEventListener('click', () => { fuelModal.hidden = true; });
+        fuelModal.addEventListener('click', (e) => { if (e.target === fuelModal) fuelModal.hidden = true; });
+        fuelForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const dateVal = document.getElementById('fuelDate').value;
+            const liters = parseFloat(document.getElementById('fuelLiters').value);
+            const price = parseFloat(document.getElementById('fuelPrice').value);
+            if (!dateVal || !(liters > 0) || !(price > 0)) {
+                showToast('⚠ Bitte alle Felder gültig ausfüllen', 2500);
+                return;
+            }
+            const [y, m, d] = dateVal.split('-').map(Number);
+            addFuelEntry(new Date(y, m - 1, d, 12, 0), liters, price);
+            fuelModal.hidden = true;
+            showToast(`✅ Tankfüllung gespeichert: ${fmt(liters)} L für €${fmt(liters * price)}`, 2800);
+        });
+
         fileInput.addEventListener('change', function(e) {
             if (this.files && this.files.length > 0) {
                 handleFiles(this.files);
@@ -1167,14 +1473,17 @@
         (async function init() {
             // 1. Lokalen Cache laden (schnell, offline-fähig)
             loadFromLocalStorage();
+            loadFuelFromLocalStorage();
 
-            // 2. Ladedaten.json aus dem Repo laden – das ist die eigentliche
-            //    Datenquelle, keine Werte sind fest in der App hinterlegt.
+            // 2. ladedaten.json / tankdaten.json aus dem Repo laden – das sind
+            //    die eigentlichen Datenquellen, keine Werte sind fest in der
+            //    App hinterlegt.
             await loadFromRepoJson();
+            await loadFuelFromRepoJson();
 
             // 3. Falls ein GitHub-Token hinterlegt ist, zusätzlich damit
-            //    abgleichen (deckt Fälle ab, in denen ladedaten.json per
-            //    fetch() nicht erreichbar ist, z.B. beim Öffnen als lokale Datei).
+            //    abgleichen (deckt Fälle ab, in denen die JSON-Dateien per
+            //    fetch() nicht erreichbar sind, z.B. beim Öffnen als lokale Datei).
             const token = tokenInput.value.trim();
             if (token) {
                 await loadFromGitHub();
@@ -1183,9 +1492,10 @@
             updateMonthKeys();
             currentMonthIndex = 0;
             saveToLocalStorage();
+            saveFuelToLocalStorage();
             render();
-            if (allSessions.length > 0) {
-                showToast(`📊 ${allSessions.length} Ladevorgänge geladen`, 2500);
+            if (allSessions.length > 0 || fuelEntries.length > 0) {
+                showToast(`📊 ${allSessions.length} Ladevorgänge, ${fuelEntries.length} Tankfüllungen geladen`, 2500);
             }
         })();
     </script>
