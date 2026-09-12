@@ -25,6 +25,11 @@
     "pricePerLiter": 2
   },
   {
+    "date": "2026-05-05T10:00:00.000Z",
+    "liters": 36.75,
+    "pricePerLiter": 2
+  },
+  {
     "date": "2026-04-30T10:00:00.000Z",
     "liters": 25,
     "pricePerLiter": 2
