@@ -106,22 +106,47 @@
         }
         #fileInput, #restoreInput { display: none; }
 
-        .save-status-row {
+        .token-row {
             display: flex;
             align-items: center;
             gap: 6px;
             margin-top: 6px;
             padding-top: 6px;
             border-top: 1px solid rgba(255,255,255,0.15);
+            flex-wrap: wrap;
         }
-        .save-status-row .save-status {
+        .token-row label {
+            color: rgba(255,255,255,0.7);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        .token-row input {
+            flex: 1;
+            min-width: 120px;
+            padding: 3px 8px;
+            border: none;
+            border-radius: 30px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .token-row input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        .token-row input:focus {
+            background: rgba(255,255,255,0.25);
+        }
+        .token-row .save-status {
             font-size: 10px;
             color: rgba(255,255,255,0.6);
             white-space: nowrap;
         }
-        .save-status-row .save-status.ok { color: #34a853; }
-        .save-status-row .save-status.err { color: #ea4335; }
-        .save-status-row .save-status.sync { color: #fbbc04; }
+        .token-row .save-status.ok { color: #34a853; }
+        .token-row .save-status.err { color: #ea4335; }
+        .token-row .save-status.sync { color: #fbbc04; }
 
         .summary-card {
             background: #fff;
@@ -502,6 +527,8 @@
             .chart-labels span { font-size: 5px; }
             .header-actions .action-btn span { display: none; }
             .header-actions .action-btn { padding: 4px 8px; }
+            .token-row input { min-width: 80px; font-size: 10px; }
+            .token-row label { font-size: 9px; }
         }
         @media (min-width: 600px) {
             body { max-width: 480px; margin: 0 auto; background: #e8ecf0; }
@@ -554,8 +581,10 @@
             </div>
         </div>
 
-        <!-- GitHub-Status (Token ist im Code hinterlegt) -->
-        <div class="save-status-row">
+        <!-- Token-Zeile – minimal -->
+        <div class="token-row">
+            <label>🔑 Token</label>
+            <input type="password" id="githubToken" placeholder="ghp_..." />
             <span class="save-status" id="saveStatus">● bereit</span>
         </div>
     </header>
@@ -606,8 +635,6 @@
         const DATA_URL = 'ladedaten.json';
         const FUEL_GITHUB_PATH = 'tankdaten.json';
         const FUEL_DATA_URL = 'tankdaten.json';
-        // GitHub Personal Access Token (fest im Code hinterlegt)
-        const GITHUB_TOKEN = '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';
         // Werte über diesem Schwellwert (kWh) sind ein bekannter Faktor-10-
         // Messfehler des Zählers und werden durch 10 geteilt. 11.14 ist der
         // höchste beobachtete plausible Vollladewert; alles darüber (50+) sind
@@ -828,7 +855,7 @@
         }
 
         async function loadFromGitHub() {
-            const token = GITHUB_TOKEN;
+            const token = document.getElementById('githubToken').value.trim();
             if (!token) return false;
 
             const statusEl = document.getElementById('saveStatus');
@@ -869,9 +896,9 @@
         }
 
         async function saveToGitHub() {
-            const token = GITHUB_TOKEN;
+            const token = document.getElementById('githubToken').value.trim();
             if (!token) {
-                showToast('⚠ Kein GitHub-Token konfiguriert', 3000);
+                showToast('⚠ Bitte GitHub-Token in der Token-Zeile eingeben', 3000);
                 return false;
             }
 
@@ -927,7 +954,8 @@
             render();
             showToast('🗑 Alle Daten wurden gelöscht', 2500);
 
-            if (GITHUB_TOKEN) {
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) {
                 if (confirm('Auch die auf GitHub gespeicherten Daten leeren?')) {
                     await saveToGitHub();
                 }
@@ -1022,7 +1050,8 @@
             updateMonthKeys();
             saveFuelToLocalStorage();
             render();
-            if (GITHUB_TOKEN) setTimeout(() => saveToGitHub(), 500);
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) setTimeout(() => saveToGitHub(), 500);
         }
 
         function deleteFuelEntry(index) {
@@ -1031,7 +1060,8 @@
             updateMonthKeys();
             saveFuelToLocalStorage();
             render();
-            if (GITHUB_TOKEN) setTimeout(() => saveToGitHub(), 500);
+            const token = document.getElementById('githubToken').value.trim();
+            if (token) setTimeout(() => saveToGitHub(), 500);
         }
 
         // ============================================================
@@ -1296,7 +1326,8 @@
                             saveToLocalStorage();
                             render();
                             showToast(`✅ ${totalAdded} neue Ladevorgänge importiert (${files.length} Datei${files.length>1?'en':''})`, 3000);
-                            if (GITHUB_TOKEN) {
+                            const token = document.getElementById('githubToken').value.trim();
+                            if (token) {
                                 setTimeout(() => saveToGitHub(), 500);
                             }
                         }
@@ -1352,7 +1383,8 @@
                     saveFuelToLocalStorage();
                     render();
                     showToast(`✅ ${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen wiederhergestellt`, 3000);
-                    if (GITHUB_TOKEN) {
+                    const token = document.getElementById('githubToken').value.trim();
+                    if (token) {
                         setTimeout(() => saveToGitHub(), 500);
                     }
                 } catch (err) {
@@ -1424,6 +1456,17 @@
             }
         });
 
+        const tokenInput = document.getElementById('githubToken');
+        const savedToken = localStorage.getItem('github_token');
+        if (savedToken) tokenInput.value = savedToken;
+
+        tokenInput.addEventListener('change', function() {
+            localStorage.setItem('github_token', this.value.trim());
+            if (this.value.trim()) {
+                setTimeout(() => loadFromGitHub(), 300);
+            }
+        });
+
         // ============================================================
         // START
         // ============================================================
@@ -1438,10 +1481,11 @@
             await loadFromRepoJson();
             await loadFuelFromRepoJson();
 
-            // 3. Mit dem fest hinterlegten GitHub-Token abgleichen
-            //    (deckt Fälle ab, in denen die JSON-Dateien per fetch() nicht
-            //    erreichbar sind, z.B. beim Öffnen als lokale Datei).
-            if (GITHUB_TOKEN) {
+            // 3. Falls ein GitHub-Token hinterlegt ist, zusätzlich damit
+            //    abgleichen (deckt Fälle ab, in denen die JSON-Dateien per
+            //    fetch() nicht erreichbar sind, z.B. beim Öffnen als lokale Datei).
+            const token = tokenInput.value.trim();
+            if (token) {
                 await loadFromGitHub();
             }
 
