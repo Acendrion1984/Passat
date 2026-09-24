@@ -104,7 +104,7 @@
         .action-btn.danger:hover {
             background: rgba(234, 67, 53, 0.55);
         }
-        #fileInput, #restoreInput { display: none; }
+        #fileInput, #schaefflerFileInput, #restoreInput { display: none; }
 
         .token-row {
             display: flex;
@@ -311,6 +311,7 @@
             background: #0066b3;
         }
         .chart-bar.fuel { background: #ea4335; }
+        .chart-bar.schaeffler { background: #f9a825; }
         .chart-bar.zero { background: #e9ecef; }
         .chart-bar:hover { opacity: 0.8; }
         .chart-legend {
@@ -319,11 +320,13 @@
             font-size: 11px;
             color: #6b7a8a;
             margin-bottom: 4px;
+            flex-wrap: wrap;
         }
         .chart-legend span { display: flex; align-items: center; gap: 4px; }
         .chart-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         .chart-legend .dot.energy { background: #0066b3; }
         .chart-legend .dot.fuel { background: #ea4335; }
+        .chart-legend .dot.schaeffler { background: #f9a825; }
         .chart-labels {
             display: flex;
             margin-top: 2px;
@@ -355,6 +358,7 @@
             border-left: 4px solid #0066b3;
         }
         .session-item.fuel { border-left-color: #ea4335; }
+        .session-item.schaeffler { border-left-color: #f9a825; }
         .session-item .session-delete {
             background: none;
             border: none;
@@ -548,13 +552,17 @@
                 </div>
                 <div class="title">
                     Passat GTE
-                    <small>Ladehistorie · Zuhause</small>
+                    <small>Ladehistorie · Zuhause & Schaeffler</small>
                 </div>
             </div>
             <div class="header-actions">
                 <button class="import-btn" id="headerImportBtn">
                     <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                     <span>Import</span>
+                </button>
+                <button class="action-btn" id="schaefflerImportBtn">
+                    <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+                    <span>Schaeffler</span>
                 </button>
                 <button class="action-btn" id="fuelBtn">
                     <svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 9H6V5h6v4zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
@@ -577,6 +585,7 @@
                     <span>Leeren</span>
                 </button>
                 <input type="file" id="fileInput" accept=".xlsx,.xls" multiple />
+                <input type="file" id="schaefflerFileInput" accept=".csv" multiple />
                 <input type="file" id="restoreInput" accept=".json" />
             </div>
         </div>
@@ -635,6 +644,8 @@
         const DATA_URL = 'ladedaten.json';
         const FUEL_GITHUB_PATH = 'tankdaten.json';
         const FUEL_DATA_URL = 'tankdaten.json';
+        const SCHAEFFLER_GITHUB_PATH = 'schaefflerdaten.json';
+        const SCHAEFFLER_DATA_URL = 'schaefflerdaten.json';
         // Werte über diesem Schwellwert (kWh) sind ein bekannter Faktor-10-
         // Messfehler des Zählers und werden durch 10 geteilt. 11.14 ist der
         // höchste beobachtete plausible Vollladewert; alles darüber (50+) sind
@@ -644,6 +655,10 @@
 
         let allSessions = []; // { start: Date, end: Date|null, energy: number }
         let fuelEntries = []; // { date: Date, liters: number, pricePerLiter: number }
+        // Schaeffler-Ladungen: eigener Strompreis als privat, daher werden die
+        // Kosten direkt aus dem CSV-Export übernommen statt aus COST_PER_KWH
+        // berechnet.
+        let schaefflerSessions = []; // { start: Date, end: Date|null, energy: number, cost: number, location: string }
         let monthKeys = [];
         let currentMonthIndex = 0;
 
@@ -755,6 +770,29 @@
 
         function fuelCost(f) { return f.liters * f.pricePerLiter; }
 
+        function serializeSchaefflerSessions(sessions) {
+            return sessions.map(s => ({
+                start: s.start ? s.start.toISOString() : null,
+                end: s.end ? s.end.toISOString() : null,
+                energy: s.energy || 0,
+                cost: s.cost || 0,
+                location: s.location || '',
+            }));
+        }
+
+        function deserializeSchaefflerSessions(raw) {
+            if (!Array.isArray(raw)) return [];
+            return raw
+                .map(s => ({
+                    start: s.start ? new Date(s.start) : null,
+                    end: s.end ? new Date(s.end) : null,
+                    energy: Math.round((parseFloat(s.energy) || 0) * 1000) / 1000,
+                    cost: Math.round((parseFloat(s.cost) || 0) * 100) / 100,
+                    location: s.location || '',
+                }))
+                .filter(s => s.start && s.energy > 0); // Nullwerte streichen
+        }
+
         // ============================================================
         // PERSISTENZ (localStorage)
         // ============================================================
@@ -788,8 +826,24 @@
             } catch (e) { return false; }
         }
 
+        function saveSchaefflerToLocalStorage() {
+            try {
+                localStorage.setItem('passat_gte_schaeffler', JSON.stringify(serializeSchaefflerSessions(schaefflerSessions)));
+            } catch (e) { console.warn('localStorage save error', e); }
+        }
+
+        function loadSchaefflerFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem('passat_gte_schaeffler');
+                if (!raw) return false;
+                schaefflerSessions = deserializeSchaefflerSessions(JSON.parse(raw));
+                return schaefflerSessions.length > 0;
+            } catch (e) { return false; }
+        }
+
         // ============================================================
-        // DATEN AUS DEM REPO LADEN (ladedaten.json / tankdaten.json, ohne Token)
+        // DATEN AUS DEM REPO LADEN (ladedaten.json / tankdaten.json /
+        // schaefflerdaten.json, ohne Token)
         // ============================================================
         async function fetchJsonFile(url) {
             try {
@@ -811,6 +865,12 @@
             const raw = await fetchJsonFile(FUEL_DATA_URL);
             if (!raw) return false;
             return mergeFuelEntries(deserializeFuel(raw)) > 0;
+        }
+
+        async function loadSchaefflerFromRepoJson() {
+            const raw = await fetchJsonFile(SCHAEFFLER_DATA_URL);
+            if (!raw) return false;
+            return mergeSchaefflerSessions(deserializeSchaefflerSessions(raw)) > 0;
         }
 
         // ============================================================
@@ -872,16 +932,21 @@
                 if (!fuelResult.notFound) {
                     addedTotal += mergeFuelEntries(deserializeFuel(fuelResult.json));
                 }
+                const schaefflerResult = await githubGetFile(SCHAEFFLER_GITHUB_PATH, token);
+                if (!schaefflerResult.notFound) {
+                    addedTotal += mergeSchaefflerSessions(deserializeSchaefflerSessions(schaefflerResult.json));
+                }
 
                 if (addedTotal > 0) {
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
                     saveFuelToLocalStorage();
+                    saveSchaefflerToLocalStorage();
                     render();
                     statusEl.textContent = '● ✅ synchronisiert';
                     statusEl.className = 'save-status ok';
-                    showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen)`, 3000);
+                    showToast(`✅ Daten von GitHub geladen (${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen, ${schaefflerSessions.length} Schaeffler-Ladungen)`, 3000);
                 } else {
                     statusEl.textContent = '● lokal aktuell';
                     statusEl.className = 'save-status ok';
@@ -910,19 +975,22 @@
                 const now = new Date().toLocaleString();
                 const chargeContent = JSON.stringify(serializeSessions(allSessions), null, 2);
                 const fuelContent = JSON.stringify(serializeFuel(fuelEntries), null, 2);
+                const schaefflerContent = JSON.stringify(serializeSchaefflerSessions(schaefflerSessions), null, 2);
 
-                const [chargeResp, fuelResp] = await Promise.all([
+                const [chargeResp, fuelResp, schaefflerResp] = await Promise.all([
                     githubPutFile(GITHUB_PATH, token, chargeContent, `Update Ladedaten ${now}`),
                     githubPutFile(FUEL_GITHUB_PATH, token, fuelContent, `Update Tankdaten ${now}`),
+                    githubPutFile(SCHAEFFLER_GITHUB_PATH, token, schaefflerContent, `Update Schaefflerdaten ${now}`),
                 ]);
 
-                if (chargeResp.ok && fuelResp.ok) {
+                if (chargeResp.ok && fuelResp.ok && schaefflerResp.ok) {
                     statusEl.textContent = '● ✅ gespeichert';
                     statusEl.className = 'save-status ok';
                     showToast('✅ Erfolgreich auf GitHub gespeichert', 2500);
                     return true;
                 } else {
-                    const failed = !chargeResp.ok ? await chargeResp.json() : await fuelResp.json();
+                    const failedResp = [chargeResp, fuelResp, schaefflerResp].find(r => !r.ok);
+                    const failed = await failedResp.json();
                     console.error(failed);
                     statusEl.textContent = '● ❌ Fehler';
                     statusEl.className = 'save-status err';
@@ -947,10 +1015,12 @@
             }
             allSessions = [];
             fuelEntries = [];
+            schaefflerSessions = [];
             monthKeys = [];
             currentMonthIndex = 0;
             localStorage.removeItem('passat_gte_data');
             localStorage.removeItem('passat_gte_fuel');
+            localStorage.removeItem('passat_gte_schaeffler');
             render();
             showToast('🗑 Alle Daten wurden gelöscht', 2500);
 
@@ -1012,6 +1082,46 @@
             return sessions;
         }
 
+        // Schaeffler-Ladeliste (WEVO-Export als CSV):
+        // Datum,Zeit,Standort,Kategorie,Dauer (Minuten),kWh,Kosten,Währung
+        function parseSchaefflerCsv(text) {
+            const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) { showToast('⚠ Keine Daten in der CSV-Datei gefunden.'); return []; }
+
+            const header = lines[0].split(',').map(h => h.trim());
+            const idx = {};
+            header.forEach((h, i) => { idx[h] = i; });
+            const required = ['Datum', 'Zeit', 'Dauer (Minuten)', 'kWh', 'Kosten'];
+            if (required.some(col => !(col in idx))) {
+                showToast('⚠ Spalten nicht gefunden (erwarte Schaeffler/WEVO-Format).');
+                return [];
+            }
+
+            const sessions = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',');
+                if (cols.length < header.length) continue;
+
+                const dateVal = cols[idx['Datum']].trim();
+                const timeVal = cols[idx['Zeit']].trim();
+                if (!dateVal || !timeVal) continue;
+                const [year, month, day] = dateVal.split('-').map(Number);
+                const [hour, minute] = timeVal.split(':').map(Number);
+                const startDate = new Date(year, month - 1, day, hour, minute);
+                if (isNaN(startDate.getTime())) continue;
+
+                const durationMin = parseFloat(cols[idx['Dauer (Minuten)']]) || 0;
+                const endDate = new Date(startDate.getTime() + durationMin * 60000);
+                const energy = Math.round((parseFloat(cols[idx['kWh']]) || 0) * 1000) / 1000;
+                if (energy <= 0) continue; // Nullwerte streichen
+                const cost = Math.round((parseFloat(cols[idx['Kosten']]) || 0) * 100) / 100;
+                const location = idx['Standort'] !== undefined ? cols[idx['Standort']].trim() : '';
+
+                sessions.push({ start: startDate, end: endDate, energy, cost, location });
+            }
+            return sessions;
+        }
+
         function mergeSessions(newSessions) {
             const toAdd = [];
             for (const s of newSessions) {
@@ -1064,6 +1174,24 @@
             if (token) setTimeout(() => saveToGitHub(), 500);
         }
 
+        function mergeSchaefflerSessions(newSessions) {
+            const toAdd = [];
+            for (const s of newSessions) {
+                if (!s.start) continue;
+                const isDuplicate = candidates => candidates.some(c =>
+                    c.start && Math.abs(c.start.getTime() - s.start.getTime()) < DEDUPE_WINDOW_MS);
+                if (isDuplicate(schaefflerSessions) || isDuplicate(toAdd)) continue;
+                toAdd.push(s);
+            }
+            schaefflerSessions = [...schaefflerSessions, ...toAdd];
+            schaefflerSessions.sort((a, b) => {
+                if (!a.start) return 1;
+                if (!b.start) return -1;
+                return b.start.getTime() - a.start.getTime();
+            });
+            return toAdd.length;
+        }
+
         // ============================================================
         // MONATSSCHLÜSSEL
         // ============================================================
@@ -1071,6 +1199,7 @@
             const dates = [
                 ...allSessions.map(s => s.start),
                 ...fuelEntries.map(f => f.date),
+                ...schaefflerSessions.map(s => s.start),
             ].filter(d => d);
             if (dates.length === 0) {
                 monthKeys = [];
@@ -1096,7 +1225,7 @@
             const container = document.getElementById('dataContainer');
             const empty = document.getElementById('emptyState');
 
-            if ((!allSessions.length && !fuelEntries.length) || monthKeys.length === 0) {
+            if ((!allSessions.length && !fuelEntries.length && !schaefflerSessions.length) || monthKeys.length === 0) {
                 container.innerHTML = '';
                 empty.style.display = 'block';
                 return;
@@ -1114,33 +1243,47 @@
                 s.start && s.start.getFullYear() === year && s.start.getMonth() === month-1);
             const monthFuel = fuelEntries.filter(f =>
                 f.date && f.date.getFullYear() === year && f.date.getMonth() === month-1);
+            const monthSchaeffler = schaefflerSessions.filter(s =>
+                s.start && s.start.getFullYear() === year && s.start.getMonth() === month-1);
 
             const daysInMonth = new Date(year, month, 0).getDate();
             const dayEnergy = new Array(daysInMonth + 1).fill(0);
             const dayFuel = new Array(daysInMonth + 1).fill(0);
+            const daySchaeffler = new Array(daysInMonth + 1).fill(0);
             for (const s of monthSessions) dayEnergy[s.start.getDate()] += s.energy;
             for (const f of monthFuel) dayFuel[f.date.getDate()] += f.liters;
+            for (const s of monthSchaeffler) daySchaeffler[s.start.getDate()] += s.energy;
             const maxEnergy = Math.max(0.1, ...dayEnergy);
             const maxFuel = Math.max(0.1, ...dayFuel);
+            const maxSchaeffler = Math.max(0.1, ...daySchaeffler);
 
             const monthTotal = monthSessions.reduce((sum, s) => sum + s.energy, 0);
             const monthAvg = monthSessions.length ? monthTotal / monthSessions.length : 0;
             const monthCost = monthTotal * COST_PER_KWH;
             const monthFuelLiters = monthFuel.reduce((sum, f) => sum + f.liters, 0);
             const monthFuelCost = monthFuel.reduce((sum, f) => sum + fuelCost(f), 0);
+            const monthSchaefflerEnergy = monthSchaeffler.reduce((sum, s) => sum + s.energy, 0);
+            const monthSchaefflerCost = monthSchaeffler.reduce((sum, s) => sum + s.cost, 0);
 
             const barHeight = 90;
             let barsHtml = '';
             for (let d = 1; d <= daysInMonth; d++) {
                 const eVal = dayEnergy[d];
                 const fVal = dayFuel[d];
+                const sVal = daySchaeffler[d];
                 const eHeight = Math.max(2, (eVal / maxEnergy) * barHeight);
                 const fHeight = Math.max(2, (fVal / maxFuel) * barHeight);
+                const sHeight = Math.max(2, (sVal / maxSchaeffler) * barHeight);
                 const eCls = eVal > 0 ? '' : 'zero';
                 const fCls = fVal > 0 ? 'fuel' : 'zero';
+                const sCls = sVal > 0 ? 'schaeffler' : 'zero';
+                const titleParts = [`${fmt(eVal)} kWh Zuhause`];
+                if (sVal > 0) titleParts.push(`${fmt(sVal)} kWh Schaeffler`);
+                if (fVal > 0) titleParts.push(`${fmt(fVal)} L getankt`);
                 barsHtml += `
-                    <div class="chart-day" title="${d}. ${monthName} ${year}: ${fmt(eVal)} kWh${fVal > 0 ? ', ' + fmt(fVal) + ' L getankt' : ''}">
+                    <div class="chart-day" title="${d}. ${monthName} ${year}: ${titleParts.join(', ')}">
                         <div class="chart-bar ${eCls}" style="height:${eHeight}px;"></div>
+                        <div class="chart-bar ${sCls}" style="height:${sVal > 0 ? sHeight : 2}px;"></div>
                         <div class="chart-bar ${fCls}" style="height:${fVal > 0 ? fHeight : 2}px;"></div>
                     </div>
                 `;
@@ -1155,6 +1298,7 @@
             const listItems = [
                 ...monthSessions.map(s => ({ type: 'charge', date: s.start, data: s })),
                 ...monthFuel.map(f => ({ type: 'fuel', date: f.date, data: f, fuelIndex: fuelEntries.indexOf(f) })),
+                ...monthSchaeffler.map(s => ({ type: 'schaeffler', date: s.start, data: s })),
             ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
             let sessionsHtml = '';
@@ -1177,7 +1321,7 @@
                                 </div>
                             </div>
                         `;
-                    } else {
+                    } else if (item.type === 'fuel') {
                         const f = item.data;
                         const dateStr = formatSessionDate(f.date);
                         sessionsHtml += `
@@ -1193,6 +1337,22 @@
                                 </div>
                             </div>
                         `;
+                    } else {
+                        const s = item.data;
+                        const dateStr = formatSessionDate(s.start);
+                        const durStr = formatDurationHours(sessionDuration(s));
+                        sessionsHtml += `
+                            <div class="session-item schaeffler">
+                                <div class="session-row1">
+                                    <span class="session-date">🏢 ${dateStr}</span>
+                                </div>
+                                <div class="session-row2">
+                                    <span class="session-cost">€${fmt(s.cost)}</span>
+                                    <span class="session-duration">🕐 ${durStr}${s.location ? ' · ' + s.location : ''}</span>
+                                    <span class="session-energy">${fmt(s.energy)} <small>kWh</small></span>
+                                </div>
+                            </div>
+                        `;
                     }
                 }
             } else {
@@ -1203,7 +1363,13 @@
             const totalCost = totalEnergy * COST_PER_KWH;
             const totalFuelLiters = fuelEntries.reduce((sum, f) => sum + f.liters, 0);
             const totalFuelCost = fuelEntries.reduce((sum, f) => sum + fuelCost(f), 0);
-            const allDates = [...allSessions.map(s => s.start), ...fuelEntries.map(f => f.date)].filter(d => d);
+            const totalSchaefflerEnergy = schaefflerSessions.reduce((sum, s) => sum + s.energy, 0);
+            const totalSchaefflerCost = schaefflerSessions.reduce((sum, s) => sum + s.cost, 0);
+            const allDates = [
+                ...allSessions.map(s => s.start),
+                ...fuelEntries.map(f => f.date),
+                ...schaefflerSessions.map(s => s.start),
+            ].filter(d => d);
             let dateRange = '';
             if (allDates.length) {
                 const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
@@ -1220,6 +1386,7 @@
                     </div>
                     <div class="summary-detail">
                         <span class="status">🔵 Zuhause · ${allSessions.length} Sitzungen</span>
+                        <span class="status">🏢 Schaeffler · ${fmt(totalSchaefflerEnergy)} kWh · €${fmt(totalSchaefflerCost)}</span>
                         <span class="status">⛽ ${fmt(totalFuelLiters)} L · €${fmt(totalFuelCost)}</span>
                     </div>
                     <div class="summary-date-range" style="font-size:12px;color:#8a9aa8;margin-top:4px;">${dateRange}</div>
@@ -1245,6 +1412,14 @@
                             <span class="stat-label">Kosten</span>
                         </span>
                         <span class="month-stat-item">
+                            <span class="stat-value">${fmt(monthSchaefflerEnergy)}</span>
+                            <span class="stat-label">kWh 🏢</span>
+                        </span>
+                        <span class="month-stat-item">
+                            <span class="stat-value">€${fmt(monthSchaefflerCost)}</span>
+                            <span class="stat-label">Schaeffler</span>
+                        </span>
+                        <span class="month-stat-item">
                             <span class="stat-value">${fmt(monthFuelLiters)}</span>
                             <span class="stat-label">L ⛽</span>
                         </span>
@@ -1253,12 +1428,13 @@
                             <span class="stat-label">Kraftstoff</span>
                         </span>
                     </div>
-                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length} Ladungen, ${monthFuel.length} Tankfüllungen</div>
+                    <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length} Zuhause, ${monthSchaeffler.length} Schaeffler, ${monthFuel.length} Tankfüllungen</div>
 
                     <div class="chart-container">
                         <div class="chart-title">Tägliche Energie & Kraftstoff</div>
                         <div class="chart-legend">
-                            <span><i class="dot energy"></i> Laden (kWh)</span>
+                            <span><i class="dot energy"></i> Zuhause (kWh)</span>
+                            <span><i class="dot schaeffler"></i> Schaeffler (kWh)</span>
                             <span><i class="dot fuel"></i> Tanken (L)</span>
                         </div>
                         <div class="chart-bars-wrapper">
@@ -1347,6 +1523,46 @@
             }
         }
 
+        function handleSchaefflerFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            const files = Array.from(fileList);
+            let loaded = 0;
+            let totalAdded = 0;
+
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const sessions = parseSchaefflerCsv(e.target.result);
+                        totalAdded += mergeSchaefflerSessions(sessions);
+                        loaded++;
+                        if (loaded === files.length) {
+                            updateMonthKeys();
+                            currentMonthIndex = 0;
+                            saveSchaefflerToLocalStorage();
+                            render();
+                            showToast(`✅ ${totalAdded} neue Schaeffler-Ladungen importiert (${files.length} Datei${files.length>1?'en':''})`, 3000);
+                            const token = document.getElementById('githubToken').value.trim();
+                            if (token) {
+                                setTimeout(() => saveToGitHub(), 500);
+                            }
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast(`❌ Fehler beim Lesen von ${file.name}`);
+                        loaded++;
+                        if (loaded === files.length) render();
+                    }
+                };
+                reader.onerror = function() {
+                    showToast(`❌ Fehler beim Lesen von ${file.name}`);
+                    loaded++;
+                    if (loaded === files.length) render();
+                };
+                reader.readAsText(file);
+            }
+        }
+
         // ============================================================
         // BACKUP / RESTORE
         // ============================================================
@@ -1354,6 +1570,7 @@
             const backup = {
                 sessions: serializeSessions(allSessions),
                 fuel: serializeFuel(fuelEntries),
+                schaeffler: serializeSchaefflerSessions(schaefflerSessions),
             };
             const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1373,16 +1590,20 @@
                     // Älteres Backup-Format war ein reines Array von Ladevorgängen.
                     const sessionsRaw = Array.isArray(parsed) ? parsed : (parsed.sessions || []);
                     const fuelRaw = Array.isArray(parsed) ? [] : (parsed.fuel || []);
+                    const schaefflerRaw = Array.isArray(parsed) ? [] : (parsed.schaeffler || []);
                     allSessions = deserializeSessions(sessionsRaw);
                     allSessions.sort((a, b) => b.start.getTime() - a.start.getTime());
                     fuelEntries = deserializeFuel(fuelRaw);
                     fuelEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+                    schaefflerSessions = deserializeSchaefflerSessions(schaefflerRaw);
+                    schaefflerSessions.sort((a, b) => b.start.getTime() - a.start.getTime());
                     updateMonthKeys();
                     currentMonthIndex = 0;
                     saveToLocalStorage();
                     saveFuelToLocalStorage();
+                    saveSchaefflerToLocalStorage();
                     render();
-                    showToast(`✅ ${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen wiederhergestellt`, 3000);
+                    showToast(`✅ ${allSessions.length} Sitzungen, ${fuelEntries.length} Tankfüllungen, ${schaefflerSessions.length} Schaeffler-Ladungen wiederhergestellt`, 3000);
                     const token = document.getElementById('githubToken').value.trim();
                     if (token) {
                         setTimeout(() => saveToGitHub(), 500);
@@ -1400,6 +1621,15 @@
         const fileInput = document.getElementById('fileInput');
         document.getElementById('headerImportBtn').addEventListener('click', () => fileInput.click());
         document.getElementById('emptyImportBtn').addEventListener('click', () => fileInput.click());
+
+        const schaefflerFileInput = document.getElementById('schaefflerFileInput');
+        document.getElementById('schaefflerImportBtn').addEventListener('click', () => schaefflerFileInput.click());
+        schaefflerFileInput.addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                handleSchaefflerFiles(this.files);
+            }
+            this.value = '';
+        });
 
         document.getElementById('backupBtn').addEventListener('click', backupData);
 
@@ -1474,12 +1704,14 @@
             // 1. Lokalen Cache laden (schnell, offline-fähig)
             loadFromLocalStorage();
             loadFuelFromLocalStorage();
+            loadSchaefflerFromLocalStorage();
 
-            // 2. ladedaten.json / tankdaten.json aus dem Repo laden – das sind
-            //    die eigentlichen Datenquellen, keine Werte sind fest in der
-            //    App hinterlegt.
+            // 2. ladedaten.json / tankdaten.json / schaefflerdaten.json aus dem
+            //    Repo laden – das sind die eigentlichen Datenquellen, keine
+            //    Werte sind fest in der App hinterlegt.
             await loadFromRepoJson();
             await loadFuelFromRepoJson();
+            await loadSchaefflerFromRepoJson();
 
             // 3. Falls ein GitHub-Token hinterlegt ist, zusätzlich damit
             //    abgleichen (deckt Fälle ab, in denen die JSON-Dateien per
@@ -1493,9 +1725,10 @@
             currentMonthIndex = 0;
             saveToLocalStorage();
             saveFuelToLocalStorage();
+            saveSchaefflerToLocalStorage();
             render();
-            if (allSessions.length > 0 || fuelEntries.length > 0) {
-                showToast(`📊 ${allSessions.length} Ladevorgänge, ${fuelEntries.length} Tankfüllungen geladen`, 2500);
+            if (allSessions.length > 0 || fuelEntries.length > 0 || schaefflerSessions.length > 0) {
+                showToast(`📊 ${allSessions.length} Ladevorgänge, ${schaefflerSessions.length} Schaeffler, ${fuelEntries.length} Tankfüllungen geladen`, 2500);
             }
         })();
     </script>
