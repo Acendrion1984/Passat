@@ -1464,17 +1464,25 @@
                 dateRange = `${minDate.getDate()}. ${MONTH_NAMES[minDate.getMonth()]} ${minDate.getFullYear()} – ${maxDate.getDate()}. ${MONTH_NAMES[maxDate.getMonth()]} ${maxDate.getFullYear()}`;
             }
 
+            const totalElectricityEnergy = totalEnergy + totalSchaefflerEnergy;
+            const totalElectricityCost = totalCost + totalSchaefflerCost;
+            const grandTotalCost = totalElectricityCost + totalFuelCost;
+
             container.innerHTML = `
                 <div class="summary-card">
                     <div class="summary-label">Gesamtbetrag · Gesamtzeit</div>
                     <div class="summary-row">
-                        <span class="summary-total-kwh">${fmt(totalEnergy)} <small>kWh</small></span>
-                        <span class="summary-cost">€${fmt(totalCost)}</span>
+                        <span class="summary-total-kwh">${fmt(totalElectricityEnergy)} <small>kWh</small></span>
+                        <span class="summary-cost">€${fmt(grandTotalCost)}</span>
+                    </div>
+                    <div class="summary-detail" style="border-top:none;padding-top:0;">
+                        <span class="status">🔌 Strom gesamt · €${fmt(totalElectricityCost)}</span>
+                        <span class="status">⛽ Benzin gesamt · €${fmt(totalFuelCost)}</span>
                     </div>
                     <div class="summary-detail">
-                        <span class="status">🔵 Zuhause · ${allSessions.length} Sitzungen</span>
+                        <span class="status">🔵 Zuhause · ${fmt(totalEnergy)} kWh · €${fmt(totalCost)}</span>
                         <span class="status">🏢 Schaeffler · ${fmt(totalSchaefflerEnergy)} kWh · €${fmt(totalSchaefflerCost)}</span>
-                        <span class="status">⛽ ${fmt(totalFuelLiters)} L · €${fmt(totalFuelCost)}</span>
+                        <span class="status">⛽ Tanken · ${fmt(totalFuelLiters)} L · €${fmt(totalFuelCost)}</span>
                     </div>
                     <div class="summary-date-range" style="font-size:12px;color:#8a9aa8;margin-top:4px;">${dateRange}</div>
                 </div>
