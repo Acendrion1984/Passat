@@ -1075,39 +1075,41 @@
             statusEl.textContent = '● speichern...';
             statusEl.className = 'save-status sync';
 
-            try {
-                const now = new Date().toLocaleString();
-                const chargeContent = JSON.stringify(serializeSessions(allSessions), null, 2);
-                const fuelContent = JSON.stringify(serializeFuel(fuelEntries), null, 2);
-                const schaefflerContent = JSON.stringify(serializeSchaefflerSessions(schaefflerSessions), null, 2);
-                const settingsContent = JSON.stringify(serializeSettings(), null, 2);
+            const now = new Date().toLocaleString();
+            const files = [
+                { path: GITHUB_PATH, label: 'Ladedaten', content: JSON.stringify(serializeSessions(allSessions), null, 2), message: `Update Ladedaten ${now}` },
+                { path: FUEL_GITHUB_PATH, label: 'Tankdaten', content: JSON.stringify(serializeFuel(fuelEntries), null, 2), message: `Update Tankdaten ${now}` },
+                { path: SCHAEFFLER_GITHUB_PATH, label: 'Schaefflerdaten', content: JSON.stringify(serializeSchaefflerSessions(schaefflerSessions), null, 2), message: `Update Schaefflerdaten ${now}` },
+                { path: SETTINGS_GITHUB_PATH, label: 'Einstellungen', content: JSON.stringify(serializeSettings(), null, 2), message: `Update Einstellungen ${now}` },
+            ];
 
-                const [chargeResp, fuelResp, schaefflerResp, settingsResp] = await Promise.all([
-                    githubPutFile(GITHUB_PATH, token, chargeContent, `Update Ladedaten ${now}`),
-                    githubPutFile(FUEL_GITHUB_PATH, token, fuelContent, `Update Tankdaten ${now}`),
-                    githubPutFile(SCHAEFFLER_GITHUB_PATH, token, schaefflerContent, `Update Schaefflerdaten ${now}`),
-                    githubPutFile(SETTINGS_GITHUB_PATH, token, settingsContent, `Update Einstellungen ${now}`),
-                ]);
-
-                if (chargeResp.ok && fuelResp.ok && schaefflerResp.ok && settingsResp.ok) {
-                    statusEl.textContent = '● ✅ gespeichert';
-                    statusEl.className = 'save-status ok';
-                    showToast('✅ Erfolgreich auf GitHub gespeichert', 2500);
-                    return true;
-                } else {
-                    const failedResp = [chargeResp, fuelResp, schaefflerResp, settingsResp].find(r => !r.ok);
-                    const failed = await failedResp.json();
-                    console.error(failed);
-                    statusEl.textContent = '● ❌ Fehler';
-                    statusEl.className = 'save-status err';
-                    showToast(`❌ GitHub-Fehler: ${failed.message || 'unbekannt'}`, 4000);
-                    return false;
+            // Nacheinander statt parallel speichern: GitHub drosselt zu viele
+            // gleichzeitige Schreibzugriffe mit demselben Token (Secondary
+            // Rate Limit) und lässt dann einzelne Requests fehlschlagen,
+            // obwohl die meisten erfolgreich sind.
+            const failures = [];
+            for (const f of files) {
+                try {
+                    const resp = await githubPutFile(f.path, token, f.content, f.message);
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        failures.push(`${f.label}: ${err.message || resp.status}`);
+                    }
+                } catch (e) {
+                    failures.push(`${f.label}: ${e.message}`);
                 }
-            } catch (e) {
-                console.error(e);
+            }
+
+            if (failures.length === 0) {
+                statusEl.textContent = '● ✅ gespeichert';
+                statusEl.className = 'save-status ok';
+                showToast('✅ Erfolgreich auf GitHub gespeichert', 2500);
+                return true;
+            } else {
+                console.error('GitHub-Speicherfehler:', failures);
                 statusEl.textContent = '● ❌ Fehler';
                 statusEl.className = 'save-status err';
-                showToast(`❌ Netzwerkfehler: ${e.message}`, 4000);
+                showToast(`❌ Fehler beim Speichern: ${failures.join('; ')}`, 6000);
                 return false;
             }
         }
