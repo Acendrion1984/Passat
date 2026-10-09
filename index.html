@@ -237,28 +237,51 @@
             font-size: 14px;
             color: #6b7a8a;
         }
-        .month-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 4px;
-            flex-wrap: wrap;
-            gap: 2px 0;
-        }
-        .month-stat-item {
-            display: flex;
+        .month-cost-table {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            column-gap: 10px;
+            row-gap: 6px;
+            margin-top: 8px;
             align-items: baseline;
-            gap: 4px;
+        }
+        .month-cost-row {
+            display: contents;
+        }
+        .mct-label {
             font-size: 13px;
             color: #2c3e50;
+            white-space: nowrap;
         }
-        .month-stat-item .stat-value {
-            font-weight: 700;
-            font-size: 16px;
-            color: #003d6b;
-        }
-        .month-stat-item .stat-label {
+        .mct-label small {
+            display: block;
+            font-size: 11px;
             color: #8a9aa8;
-            font-size: 12px;
+            font-weight: 400;
+        }
+        .mct-amount {
+            font-size: 13px;
+            color: #4a5a6a;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .mct-cost {
+            font-size: 15px;
+            font-weight: 700;
+            color: #003d6b;
+            text-align: right;
+            white-space: nowrap;
+            min-width: 64px;
+        }
+        .month-cost-row.total {
+            margin-top: 2px;
+            padding-top: 6px;
+            border-top: 1px solid #ecf0f3;
+        }
+        .month-cost-row.total .mct-label,
+        .month-cost-row.total .mct-cost {
+            font-weight: 700;
+            color: #003d6b;
         }
         .month-session-count {
             font-size: 12px;
@@ -1347,6 +1370,7 @@
             const monthFuelCost = monthFuel.reduce((sum, f) => sum + fuelCost(f), 0);
             const monthSchaefflerEnergy = monthSchaeffler.reduce((sum, s) => sum + s.energy, 0);
             const monthSchaefflerCost = monthSchaeffler.reduce((sum, s) => sum + s.cost, 0);
+            const monthGrandCost = monthCost + monthSchaefflerCost + monthFuelCost;
 
             const barHeight = 90;
             let barsHtml = '';
@@ -1493,35 +1517,27 @@
                         <span class="month-title">${monthName} <span class="year">${year}</span></span>
                         <button class="nav-btn" id="nextMonthBtn">▶</button>
                     </div>
-                    <div class="month-stats">
-                        <span class="month-stat-item">
-                            <span class="stat-value">${fmt(monthTotal)}</span>
-                            <span class="stat-label">kWh</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">${fmt(monthAvg)}</span>
-                            <span class="stat-label">kWh ⌀</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">€${fmt(monthCost)}</span>
-                            <span class="stat-label">Kosten</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">${fmt(monthSchaefflerEnergy)}</span>
-                            <span class="stat-label">kWh 🏢</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">€${fmt(monthSchaefflerCost)}</span>
-                            <span class="stat-label">Schaeffler</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">${fmt(monthFuelLiters)}</span>
-                            <span class="stat-label">L ⛽</span>
-                        </span>
-                        <span class="month-stat-item">
-                            <span class="stat-value">€${fmt(monthFuelCost)}</span>
-                            <span class="stat-label">Kraftstoff</span>
-                        </span>
+                    <div class="month-cost-table">
+                        <div class="month-cost-row">
+                            <span class="mct-label">🔵 Zuhause<small>⌀ ${fmt(monthAvg)} kWh/Ladung</small></span>
+                            <span class="mct-amount">${fmt(monthTotal)} kWh</span>
+                            <span class="mct-cost">€${fmt(monthCost)}</span>
+                        </div>
+                        <div class="month-cost-row">
+                            <span class="mct-label">🏢 Schaeffler</span>
+                            <span class="mct-amount">${fmt(monthSchaefflerEnergy)} kWh</span>
+                            <span class="mct-cost">€${fmt(monthSchaefflerCost)}</span>
+                        </div>
+                        <div class="month-cost-row">
+                            <span class="mct-label">⛽ Tanken</span>
+                            <span class="mct-amount">${fmt(monthFuelLiters)} L</span>
+                            <span class="mct-cost">€${fmt(monthFuelCost)}</span>
+                        </div>
+                        <div class="month-cost-row total">
+                            <span class="mct-label">Gesamt diesen Monat</span>
+                            <span class="mct-amount"></span>
+                            <span class="mct-cost">€${fmt(monthGrandCost)}</span>
+                        </div>
                     </div>
                     <div class="month-session-count">Sitzungen · ${monthName} ${year} &nbsp; ${monthSessions.length} Zuhause, ${monthSchaeffler.length} Schaeffler, ${monthFuel.length} Tankfüllungen</div>
 
