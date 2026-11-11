@@ -1190,43 +1190,71 @@
             return sessions;
         }
 
-        // Schaeffler-Ladeliste (WEVO-Export als CSV):
-        // Datum,Zeit,Standort,Kategorie,Dauer (Minuten),kWh,Kosten,Währung
+        // Schaeffler-Ladeliste (CSV-Export). Unterstützte Formate:
+        // alt: Datum,Zeit,Standort,Kategorie,Dauer (Minuten),kWh,Kosten,Währung
+        // neu: Stecker,Stecker heraus,Standort,Kategorie,Ursprung,RFID-Nummer,Dauer (Minuten),kWh,Kosten,Währung
+        //      (Stecker = "YYYY-MM-DD HH:MM", RFID als ="..." in Anführungszeichen)
+        function splitCsvLine(line) {
+            const out = [];
+            let cur = '', inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inQuotes) {
+                    if (ch === '"') {
+                        if (line[i + 1] === '"') { cur += '"'; i++; }
+                        else inQuotes = false;
+                    } else cur += ch;
+                } else if (ch === '"') inQuotes = true;
+                else if (ch === ',') { out.push(cur); cur = ''; }
+                else cur += ch;
+            }
+            out.push(cur);
+            return out.map(c => c.trim());
+        }
+
+        function parseSchaefflerDateTime(dateStr, timeStr) {
+            const m = (dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/);
+            if (!m) return null;
+            let hour = m[4], minute = m[5];
+            if (hour === undefined && timeStr) [hour, minute] = timeStr.split(':');
+            if (hour === undefined) return null;
+            const d = new Date(+m[1], +m[2] - 1, +m[3], +hour, +minute);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
         function parseSchaefflerCsv(text) {
-            const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+            const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) { showToast('⚠ Keine Daten in der CSV-Datei gefunden.'); return []; }
 
-            const header = lines[0].split(',').map(h => h.trim());
+            const header = splitCsvLine(lines[0]);
             const idx = {};
             header.forEach((h, i) => { idx[h] = i; });
-            const required = ['Datum', 'Zeit', 'Dauer (Minuten)', 'kWh', 'Kosten'];
-            if (required.some(col => !(col in idx))) {
-                showToast('⚠ Spalten nicht gefunden (erwarte Schaeffler/WEVO-Format).');
+            const startCol = 'Stecker' in idx ? 'Stecker' : ('Datum' in idx ? 'Datum' : null);
+            const required = ['Dauer (Minuten)', 'kWh', 'Kosten'];
+            if (!startCol || (startCol === 'Datum' && !('Zeit' in idx)) || required.some(col => !(col in idx))) {
+                showToast('⚠ Spalten nicht gefunden (erwarte Schaeffler-CSV-Format).');
                 return [];
             }
 
             const sessions = [];
             for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',');
+                const cols = splitCsvLine(lines[i]);
                 if (cols.length < header.length) continue;
 
-                const dateVal = cols[idx['Datum']].trim();
-                const timeVal = cols[idx['Zeit']].trim();
-                if (!dateVal || !timeVal) continue;
-                const [year, month, day] = dateVal.split('-').map(Number);
-                const [hour, minute] = timeVal.split(':').map(Number);
-                const startDate = new Date(year, month - 1, day, hour, minute);
-                if (isNaN(startDate.getTime())) continue;
+                const startDate = parseSchaefflerDateTime(cols[idx[startCol]], 'Zeit' in idx ? cols[idx['Zeit']] : null);
+                if (!startDate) continue;
 
                 const durationMin = parseFloat(cols[idx['Dauer (Minuten)']]) || 0;
-                const endDate = new Date(startDate.getTime() + durationMin * 60000);
+                let endDate = 'Stecker heraus' in idx ? parseSchaefflerDateTime(cols[idx['Stecker heraus']]) : null;
+                if (!endDate || endDate < startDate) endDate = new Date(startDate.getTime() + durationMin * 60000);
                 const energy = Math.round((parseFloat(cols[idx['kWh']]) || 0) * 1000) / 1000;
                 if (energy <= 0) continue; // Nullwerte streichen
                 const cost = Math.round((parseFloat(cols[idx['Kosten']]) || 0) * 100) / 100;
-                const location = idx['Standort'] !== undefined ? cols[idx['Standort']].trim() : '';
+                const location = idx['Standort'] !== undefined ? cols[idx['Standort']] : '';
 
                 sessions.push({ start: startDate, end: endDate, energy, cost, location });
             }
+            if (sessions.length === 0) showToast('⚠ Keine gültigen Ladevorgänge in der CSV-Datei gefunden.');
             return sessions;
         }
 
